@@ -1,0 +1,26 @@
+{
+  "IMEI": "TON_IMEI",
+  "TCPServer": {
+    "BasePort": 38955,
+    "serverPORT": 38955,
+    "bridgeMode": true,
+    "silenceHOST": "api.connectivity.silence.eco",
+    "silencePORT": 38955,
+    "SaveToDB": false,
+    "keepAliveInterval": 15,
+    "BMScellVoltage_pooling_interval": 600
+  },
+  "Logging": {
+    "LogToFile": false,
+    "LogLevel": 20,
+    "Timezone": "Europe/Paris"
+  },
+  "MQTT": {
+    "Enabled": true,
+    "MQTTbroker": "mosquitto",
+    "MQTTport": 1883,
+    "MQTTuser": "",
+    "MQTTpass": "",
+    "TopicPrefix": "home/silence-server"
+  }
+}

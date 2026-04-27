@@ -1,0 +1,81 @@
+services:
+
+  init:
+    image: alpine:latest
+    environment:
+      - IMEI=${IMEI:-TON_IMEI}
+    volumes:
+      - mosquitto-config:/mosquitto-config
+      - silence-config:/silence-config
+      - nodered-data:/nodered-data
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        RAW="https://raw.githubusercontent.com/thewintch/Silence-Dashboard/main"
+
+        wget -qO /mosquitto-config/mosquitto.conf \
+          "$$RAW/mosquitto/mosquitto.conf"
+
+        wget -qO- "$$RAW/silence/configuration.template.json" | \
+          sed "s/TON_IMEI/$$IMEI/g" > /silence-config/configuration.json
+
+        wget -qO /nodered-data/package.json \
+          "$$RAW/nodered/package.json"
+
+        if [ ! -f /nodered-data/flows.json ]; then
+          wget -qO- "$$RAW/nodered/flows.template.json" | \
+            sed "s/TON_IMEI/$$IMEI/g" > /nodered-data/flows.json
+        fi
+
+        echo "Init done!"
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    restart: unless-stopped
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - mosquitto-config:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+
+  silence-server:
+    image: lorenzodeluca/silence-server:latest
+    container_name: silence-server
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      mosquitto:
+        condition: service_started
+    ports:
+      - "38955:38955"
+    volumes:
+      - silence-config:/config
+    entrypoint: sh -c "sleep 5 && cp /config/configuration.json /app/configuration.json && python silence-server.py"
+
+  nodered:
+    image: nodered/node-red:3
+    container_name: nodered
+    restart: unless-stopped
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      mosquitto:
+        condition: service_started
+    ports:
+      - "1880:1880"
+    volumes:
+      - nodered-data:/data
+    entrypoint: sh -c "cd /data && npm install 2>&1 | tail -3 && node-red --userDir /data"
+
+volumes:
+  mosquitto-config:
+  mosquitto-data:
+  silence-config:
+  nodered-data:

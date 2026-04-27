@@ -1,0 +1,6 @@
+{
+  "name": "silence-dashboard",
+  "dependencies": {
+    "node-red-dashboard": "*"
+  }
+}
