@@ -424,7 +424,6 @@ var BAT_CAP   = 5.6;     // kWh
 // ─── MQTT ────────────────────────────────────────────────────
 var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
 var lastData = {}, lastMsgTime = null;
-var luInterval = setInterval(updateLastUpdate, 5000);
 
 client.on('connect',    function(){ setConn(true);  client.subscribe('home/silence-server/+/status'); });
 client.on('offline',    function(){ setConn(false); });
@@ -481,16 +480,6 @@ function update(d){
   txt('s-odo',   odo.toFixed(0));
   txt('s-batst', d.batteryIn===0 ? 'Absente' : d.charging ? 'Charge' : 'OK');
 
-  // ── Gauge
-  var arc = document.getElementById('gauge-arc');
-  var circ = 2*Math.PI*62, arcTotal = circ*270/360;
-  var filled = (soc/100)*arcTotal;
-  arc.setAttribute('stroke-dasharray', filled.toFixed(1)+' '+circ.toFixed(1));
-  txt('g-pct',   Math.round(soc)+'%');
-  txt('g-v',     voltage ? voltage.toFixed(1)+' V' : '-- V');
-  txt('g-a',     current ? current.toFixed(1)+' A' : '-- A');
-  txt('g-state', d.charging ? '⚡ Charge' : (d.batteryOut ? '🔓 Retirée' : '✓ Normal'));
-
   // ── Range / cons / regen
   txt('m-range', d.range != null ? Math.round(d.range) : '--');
   var net = disch - regen;
@@ -498,24 +487,36 @@ function update(d){
   txt('m-cons', consPkm ? consPkm.toFixed(2) : '--');
   txt('m-regen', charged > 0 ? (regen/charged*100).toFixed(1) : '--');
 
-  // ── Costs
-  if(consPkm){
-    var kwh_km = consPkm/100*BAT_CAP;
-    var cpkm = kwh_km * TARIFF;
-    txt('c-km', cpkm.toFixed(3)+'€');
-    // Rough annual odo estimate from average trip data
-    var trips = getTrips();
-    var yearDist = trips.length > 0 ? (odo / Math.max(charged/BAT_CAP,1) * 52) : 0;
-    txt('c-w',  (cpkm * odo / 52).toFixed(2)+'€');
-    txt('c-m',  (cpkm * odo / 12).toFixed(2)+'€');
-    txt('c-y',  (cpkm * odo).toFixed(2)+'€');
+  // ── Usage stats
+  var trips = getTrips();
+  if(trips.length > 0){
+    var totalDist = trips.reduce(function(a,t){return a+parseFloat(t.dist);},0);
+    txt('u-avg',  (totalDist/trips.length).toFixed(1)+' km');
+    txt('u-dist', totalDist.toFixed(1)+' km');
+    txt('u-base', totalDist.toFixed(0)+' km');
   }
 
-  // ── Battery health
+  updateBatteryUI(d, soc, voltage, current, charged, disch, regen, motT, invT, batTMin, batTMax);
+  updateCosts(consPkm, odo);
+  updateGPS(d);
+
+  trackTrip(d, speed, soc, odo);
+  renderTripsTable();
+}
+
+function updateBatteryUI(d, soc, voltage, current, charged, disch, regen, motT, invT, batTMin, batTMax){
+  var arc = document.getElementById('gauge-arc');
+  var circ = 2*Math.PI*62, arcTotal = circ*270/360;
+  arc.setAttribute('stroke-dasharray', ((soc/100)*arcTotal).toFixed(1)+' '+circ.toFixed(1));
+  txt('g-pct',   Math.round(soc)+'%');
+  txt('g-v',     voltage ? voltage.toFixed(1)+' V' : '-- V');
+  txt('g-a',     current ? current.toFixed(1)+' A' : '-- A');
+  txt('g-state', d.charging ? '⚡ Charge' : (d.batteryOut ? '🔓 Retirée' : '✓ Normal'));
+
   txt('bh-v', voltage ? voltage.toFixed(0) : '--');
   if(charged > 0) txt('bh-cycles', (charged/BAT_CAP).toFixed(1));
+  txt('bh-dev', '0.0%');
 
-  // Cells
   var cells = [];
   for(var i=1;i<=14;i++) cells.push(d['Cell'+i+'Voltage'] != null ? d['Cell'+i+'Voltage']/1000 : null);
   renderCells(cells);
@@ -525,19 +526,6 @@ function update(d){
     txt('bh-imb', imb.toFixed(0));
   }
 
-  // SOC deviation (displayed vs voltage-based — placeholder)
-  txt('bh-dev', '0.0%');
-
-  // Usage stats
-  var trips2 = getTrips();
-  if(trips2.length > 0){
-    var totalDist = trips2.reduce(function(a,t){return a+parseFloat(t.dist);},0);
-    txt('u-avg',  (totalDist/trips2.length).toFixed(1)+' km');
-    txt('u-dist', totalDist.toFixed(1)+' km');
-    txt('u-base', totalDist.toFixed(0)+' km');
-  }
-
-  // ── Details panel
   setTemp('dt-mot',  motT,   85);
   setTemp('dt-inv',  invT,   85);
   setTemp('dt-bmin', batTMin,45);
@@ -545,25 +533,29 @@ function update(d){
   txt('dt-chr', charged ? charged.toFixed(2)+' kWh' : '-- kWh');
   txt('dt-dis', disch   ? disch.toFixed(2)+' kWh'   : '-- kWh');
   txt('dt-reg', regen   ? regen.toFixed(2)+' kWh'   : '-- kWh');
+}
 
-  // ── GPS
-  if(d.latitude && d.longitude){
-    var lat=parseFloat(d.latitude), lon=parseFloat(d.longitude);
-    var iframe = document.getElementById('map-iframe');
-    var ph     = document.getElementById('map-placeholder');
-    if(iframe.style.display==='none'){
-      iframe.src = 'https://www.openstreetmap.org/export/embed.html?bbox='+(lon-.005)+','+(lat-.005)+','+(lon+.005)+','+(lat+.005)+'&layer=mapnik&marker='+lat+','+lon;
-      iframe.style.display = 'block';
-      ph.style.display = 'none';
-    }
-    var gl = $('gps-link-out');
-    gl.href = 'https://www.google.com/maps?q='+lat+','+lon;
-    gl.textContent = '📍 '+lat.toFixed(5)+', '+lon.toFixed(5)+' — Ouvrir Maps';
+function updateCosts(consPkm, odo){
+  if(!consPkm) return;
+  var cpkm = (consPkm/100*BAT_CAP) * TARIFF;
+  txt('c-km', cpkm.toFixed(3)+'€');
+  txt('c-w',  (cpkm * odo / 52).toFixed(2)+'€');
+  txt('c-m',  (cpkm * odo / 12).toFixed(2)+'€');
+  txt('c-y',  (cpkm * odo).toFixed(2)+'€');
+}
+
+function updateGPS(d){
+  if(!d.latitude || !d.longitude) return;
+  var lat=parseFloat(d.latitude), lon=parseFloat(d.longitude);
+  var iframe = document.getElementById('map-iframe');
+  if(iframe.style.display==='none'){
+    iframe.src = 'https://www.openstreetmap.org/export/embed.html?bbox='+(lon-.005)+','+(lat-.005)+','+(lon+.005)+','+(lat+.005)+'&layer=mapnik&marker='+lat+','+lon;
+    iframe.style.display = 'block';
+    document.getElementById('map-placeholder').style.display = 'none';
   }
-
-  // ── Trip tracking
-  trackTrip(d, speed, soc, odo);
-  renderTripsTable();
+  var gl = $('gps-link-out');
+  gl.href = 'https://www.google.com/maps?q='+lat+','+lon;
+  gl.textContent = '📍 '+lat.toFixed(5)+', '+lon.toFixed(5)+' — Ouvrir Maps';
 }
 
 // ─── TRIP TRACKING ───────────────────────────────────────────
@@ -653,7 +645,6 @@ function renderCells(cells){
       g.appendChild(d);
     }
   }
-  var valid=cells.filter(function(v){return v!=null;});
   cells.forEach(function(v,i){
     var el=document.getElementById('cv'+i); if(!el) return;
     if(v==null){el.textContent='--';return;}
@@ -666,7 +657,7 @@ function renderCells(cells){
 function $(id){ return document.getElementById(id); }
 function txt(id,v){ var el=$(id); if(el) el.textContent=v; }
 function pad(n){ return n<10?'0'+n:''+n; }
-function setAlarmDot(id,v){ var el=$(id); if(el) el.className='alarm-dot'+(v?'  active':''); }
+function setAlarmDot(id,v){ var el=$(id); if(el) el.className='alarm-dot'+(v?' active':''); }
 function setTemp(id,v,warn){
   var el=$(id); if(!el) return;
   if(v==null){el.textContent='--°C';el.className='temp-val tc';return;}
