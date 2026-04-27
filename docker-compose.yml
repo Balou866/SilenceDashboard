@@ -41,6 +41,11 @@ services:
     volumes:
       - mosquitto-config:/mosquitto/config
       - mosquitto-data:/mosquitto/data
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-t", "health", "-m", "1", "-q", "0"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   silence-server:
     image: lorenzodeluca/silence-server:latest
@@ -52,12 +57,12 @@ services:
       init:
         condition: service_completed_successfully
       mosquitto:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "38955:38955"
     volumes:
       - silence-config:/config
-    entrypoint: sh -c "sleep 5 && cp /config/configuration.json /app/configuration.json && python silence-server.py"
+    entrypoint: sh -c "cp /config/configuration.json /app/configuration.json && python silence-server.py"
 
   nodered:
     image: nodered/node-red:3

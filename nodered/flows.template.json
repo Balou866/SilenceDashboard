@@ -65,6 +65,7 @@
   {
     "id": "mqtt-in",
     "type": "mqtt in",
+    "z": "tab1",
     "name": "Status",
     "topic": "home/silence-server/+/status",
     "qos": "0",
@@ -77,6 +78,7 @@
   {
     "id": "fn1",
     "type": "function",
+    "z": "tab1",
     "name": "Extraire",
     "func": "var d=msg.payload;\nvar s={0:'Eteint',1:'Veille',2:'Demarrage',3:'Pret',4:'En route',5:'En charge'};\nnode.send([\n  [{payload:s[d.status]||('?'+d.status)}],\n  [{payload:parseFloat(d.odo||0).toFixed(1)+' km'}],\n  [{payload:d.BatterySoC||0}],\n  [{payload:parseFloat(d.range||0).toFixed(0)+' km'}],\n  [{payload:d.charging?'En charge':(d.batteryOut?'Batterie sortie':'Normal')}],\n  [{payload:Math.round(d.velocity||0)}],\n  [{payload:d.motorTemperature||0}],\n  [{payload:d.inverterTemperature||0}],\n  [{payload:d.batteryTemperature||0}]\n]);",
     "outputs": 9,
@@ -216,6 +218,7 @@
   {
     "id": "mqtt-out",
     "type": "mqtt out",
+    "z": "tab1",
     "name": "Commandes",
     "topic": "",
     "qos": "0",
