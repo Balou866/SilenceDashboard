@@ -13,7 +13,7 @@ services:
       - -c
       - |
         set -e
-        RAW="https://raw.githubusercontent.com/thewintch/Silence-Dashboard/main"
+        RAW="https://raw.githubusercontent.com/Balou866/SilenceDashboard/main"
 
         wget -qO /mosquitto-config/mosquitto.conf \
           "$$RAW/mosquitto/mosquitto.conf"
