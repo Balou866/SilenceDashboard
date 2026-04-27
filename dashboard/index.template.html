@@ -8,503 +8,686 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0f0f0f;--card:#1a1a1a;--border:#2a2a2a;--text:#fff;--muted:#888;
-  --green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--blue:#3498db;
-  --purple:#9b59b6;--teal:#00d4aa;
+  --bg1:#0d0d20;--bg2:#141430;--bg3:#0f1535;
+  --card:rgba(255,255,255,.07);--border:rgba(255,255,255,.12);
+  --text:#fff;--muted:rgba(255,255,255,.45);--muted2:rgba(255,255,255,.25);
+  --teal:#00d4aa;--blue:#1565c0;
+  --green:#4caf50;--yellow:#ff9800;--red:#f44336;--purple:#7c4dff;
 }
-body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min-height:100vh;padding-bottom:80px}
-/* HEADER */
-header{background:#111;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
-header h1{font-size:1.1em;color:var(--teal);font-weight:700}
-#conn-badge{display:flex;align-items:center;gap:6px;font-size:.8em}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--red);transition:background .3s}
-.dot.ok{background:var(--green)}
-/* STATUS BAR */
-#status-bar{background:#141414;padding:10px 20px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border);font-size:.9em;flex-wrap:wrap}
-#status-pill{padding:4px 14px;border-radius:20px;font-weight:700;font-size:.85em;background:#333;transition:background .3s}
-#status-pill.s0{background:#444}
-#status-pill.s2{background:#e67e22}
-#status-pill.s3{background:#27ae60}
-#status-pill.s4{background:#2980b9}
-#status-pill.s5{background:#8e44ad}
-#status-pill.s6{background:#c0392b}
-#speed-val{color:var(--teal);font-size:1.1em;font-weight:700}
-.status-alarm{padding:3px 10px;border-radius:12px;font-size:.75em;background:#2a0000;color:#ff6b6b;display:none}
-.status-alarm.on{display:inline-block}
-/* TABS */
-.tabs{display:flex;border-bottom:2px solid var(--border);background:#111;position:sticky;top:49px;z-index:9}
-.tab-btn{flex:1;padding:12px 8px;background:none;border:none;color:var(--muted);font-size:.85em;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .2s,border-color .2s}
-.tab-btn.active{color:var(--teal);border-bottom-color:var(--teal)}
-.tab{display:none;padding:16px}
-.tab.active{display:block}
-/* CARDS */
-.card{background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--border);margin-bottom:12px}
-.card-title{font-size:.7em;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
-/* STATS GRID */
-.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
-.stat-card{background:var(--card);border-radius:14px;padding:14px 16px;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;text-align:center}
-.stat-label{font-size:.68em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-.stat-value{font-size:1.9em;font-weight:700;color:var(--teal);line-height:1}
-.stat-unit{font-size:.75em;color:#666;margin-top:4px}
-/* BATTERY */
-.bat-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.bat-pct{font-size:2.4em;font-weight:700;color:var(--teal)}
-.bat-info{text-align:right;font-size:.85em;color:var(--muted)}
-.bat-bar{background:#2a2a2a;border-radius:8px;height:22px;overflow:hidden;margin:8px 0}
-.bat-fill{height:100%;border-radius:8px;transition:width .6s,background .6s}
-.bat-state{font-size:.8em;color:var(--muted);text-align:center}
-/* TEMPS */
-.temp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.temp-card{background:#111;border-radius:10px;padding:12px;border:1px solid var(--border);text-align:center}
-.temp-label{font-size:.68em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-.temp-value{font-size:1.5em;font-weight:700}
-.temp-cool{color:var(--green)}
-.temp-warm{color:var(--yellow)}
-.temp-hot{color:var(--red)}
-/* CELLS */
-.cells-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:8px}
-.cell{background:#111;border-radius:8px;padding:8px 4px;text-align:center;border:1px solid var(--border)}
-.cell-num{font-size:.6em;color:var(--muted)}
-.cell-v{font-size:.8em;font-weight:700;margin-top:2px}
-.cell-bar{height:4px;border-radius:2px;margin-top:4px;background:var(--green);transition:width .5s}
-.cell-ok{color:var(--green)}
-.cell-warn{color:var(--yellow)}
-.cell-bad{color:var(--red)}
-/* ENERGY */
-.energy-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.9em}
-.energy-row:last-child{border-bottom:none}
-.energy-label{color:var(--muted)}
-.energy-value{font-weight:600;color:var(--teal)}
-/* TRIP */
-.trip-stat{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
-.trip-stat:last-child{border-bottom:none}
-.trip-key{color:var(--muted);font-size:.85em}
-.trip-val{font-weight:700;color:var(--teal)}
-#trip-timer{font-size:2em;font-weight:700;color:var(--teal);text-align:center;margin:8px 0}
-/* ALARMS */
-.alarm-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.alarm-chip{padding:5px 12px;border-radius:20px;font-size:.75em;font-weight:600;background:var(--card);border:1px solid var(--border);color:var(--muted);transition:all .3s}
-.alarm-chip.active{background:#2a0000;border-color:#ff4444;color:#ff6b6b}
-/* COMMANDS */
-.cmd-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.cmd-grid .wide{grid-column:span 2}
-button{border:none;border-radius:12px;font-size:.95em;font-weight:700;cursor:pointer;padding:14px;transition:opacity .15s,transform .1s}
-button:active{transform:scale(.97);opacity:.85}
+html,body{height:100%;background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 55%,var(--bg3) 100%);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+
+/* ── HEADER ── */
+header{background:var(--blue);height:48px;display:flex;align-items:center;padding:0 18px;font-size:1em;font-weight:600;letter-spacing:.5px;position:sticky;top:0;z-index:20;box-shadow:0 2px 12px rgba(0,0,0,.4)}
+#hdr-conn{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:.78em;font-weight:400;opacity:.85}
+.hdot{width:8px;height:8px;border-radius:50%;background:var(--red);transition:background .3s}
+.hdot.ok{background:var(--green)}
+
+/* ── MAIN GRID ── */
+main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;gap:14px;padding:14px;align-items:start}
+@media(max-width:1100px){main{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){main{grid-template-columns:1fr}}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;backdrop-filter:blur(8px)}
+.card-title{font-size:.68em;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.card-title svg{opacity:.6}
+.sep{border:none;border-top:1px solid var(--border);margin:10px 0}
+
+/* ══════════════ LEFT COLUMN ══════════════ */
+.col-left{display:flex;flex-direction:column;gap:12px}
+
+/* Command icon bar */
+.cmd-bar{display:flex;gap:8px;justify-content:space-around}
+.cmd-icon-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;background:var(--card);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-size:.68em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;transition:background .2s,color .2s;user-select:none}
+.cmd-icon-btn:hover{background:rgba(255,255,255,.13);color:#fff}
+.cmd-icon-btn:active{transform:scale(.95)}
+.cmd-icon-btn svg{width:22px;height:22px;opacity:.7}
+
+/* ON / OFF buttons */
+.onoff-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{border:none;border-radius:10px;font-weight:700;font-size:.85em;cursor:pointer;padding:11px;transition:opacity .15s,transform .1s;letter-spacing:.3px}
+.btn:active{transform:scale(.96);opacity:.8}
 .btn-on{background:var(--green);color:#fff}
 .btn-off{background:var(--red);color:#fff}
-.btn-seat{background:var(--blue);color:#fff}
-.btn-flash{background:var(--yellow);color:#fff}
-.btn-beep{background:var(--purple);color:#fff}
-/* GPS */
-#gps-link{display:block;padding:12px;background:#111;border:1px solid var(--border);border-radius:10px;color:var(--teal);text-align:center;text-decoration:none;font-size:.9em;margin-top:8px}
-#gps-link:hover{background:#1a1a1a}
-/* HEALTH */
-.health-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
-.health-row:last-child{border-bottom:none}
-.health-label{color:var(--muted);font-size:.85em}
-.health-value{font-weight:700;font-size:1.1em}
-/* SECTION TITLE */
-.section{margin-bottom:12px}
-h2{font-size:.75em;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin:16px 0 8px;padding-left:4px}
-/* OFFLINE OVERLAY */
-#offline{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:12px}
-#offline.show{display:flex}
-#offline p{color:var(--muted);font-size:.9em}
-#offline strong{color:var(--red);font-size:1.2em}
+
+/* Scooter visual */
+.scooter-area{background:var(--card);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:10px;position:relative;overflow:hidden}
+.scooter-area::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,212,170,.08) 0%,transparent 70%)}
+.scooter-emoji{font-size:5em;line-height:1;filter:drop-shadow(0 0 20px rgba(0,212,170,.3))}
+.scooter-status-pill{padding:4px 16px;border-radius:20px;font-size:.78em;font-weight:700;background:rgba(255,255,255,.1);border:1px solid var(--border);transition:background .3s,color .3s}
+.s0{background:rgba(100,100,100,.3);color:#aaa}
+.s2{background:rgba(255,152,0,.2);color:#ff9800;border-color:#ff9800}
+.s3{background:rgba(76,175,80,.2);color:#4caf50;border-color:#4caf50}
+.s4{background:rgba(33,150,243,.2);color:#2196f3;border-color:#2196f3}
+.s5{background:rgba(124,77,255,.2);color:#b39ddb;border-color:#7c4dff}
+.s6{background:rgba(244,67,54,.2);color:#f44336;border-color:#f44336}
+
+/* Status row */
+.status-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.st-cell{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;background:var(--card);border:1px solid var(--border);border-radius:10px}
+.st-icon{font-size:1.1em;opacity:.7}
+.st-val{font-size:.85em;font-weight:700;color:var(--teal)}
+.st-label{font-size:.58em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+
+/* Usage stats */
+.usage-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.usage-val{font-size:1.1em;font-weight:700;color:var(--teal)}
+.usage-label{font-size:.62em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+
+/* Battery health summary */
+.bh-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
+.bh-val{font-size:.95em;font-weight:700;color:var(--text)}
+.bh-label{font-size:.58em;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
+
+/* ══════════════ MIDDLE COLUMN ══════════════ */
+.col-mid{display:flex;flex-direction:column;gap:12px}
+
+/* Gauge card */
+.gauge-card{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:12px}
+.gauge-wrap{position:relative;width:160px;height:160px;margin:0 auto}
+.gauge-wrap svg{width:100%;height:100%}
+.gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge-pct{font-size:1.9em;font-weight:700;color:var(--text)}
+.gauge-sub{font-size:.65em;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.gauge-info{display:flex;flex-direction:column;gap:10px}
+.last-update{display:flex;align-items:center;gap:7px;font-size:.8em;color:var(--muted)}
+.lu-dot{width:10px;height:10px;border-radius:50%;background:var(--green);flex-shrink:0}
+.bat-extras{display:flex;flex-direction:column;gap:6px}
+.bat-extra-row{display:flex;justify-content:space-between;font-size:.82em}
+.bat-extra-label{color:var(--muted)}
+.bat-extra-val{font-weight:600;color:var(--text)}
+
+/* Range / cons / regen row */
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.s3cell{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+.s3val{font-size:1.25em;font-weight:700;color:var(--teal)}
+.s3label{font-size:.62em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+
+/* Cost row */
+.cost4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.c4cell{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px;text-align:center}
+.c4val{font-size:.95em;font-weight:700;color:var(--text)}
+.c4label{font-size:.58em;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
+
+/* Trip table */
+.trips-table{width:100%;border-collapse:collapse;font-size:.8em}
+.trips-table th{color:var(--muted);font-size:.7em;text-transform:uppercase;letter-spacing:1px;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;font-weight:500}
+.trips-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--text)}
+.trips-table tr:last-child td{border-bottom:none}
+.trips-table tr:hover td{background:rgba(255,255,255,.04)}
+.trips-table td:not(:first-child){text-align:right;font-weight:600;color:var(--teal)}
+
+/* ══════════════ RIGHT COLUMN ══════════════ */
+.col-right{display:flex;flex-direction:column;gap:12px}
+
+/* Trip header */
+.trip-header-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
+.trip-dist-big{font-size:2.4em;font-weight:700;color:var(--text);line-height:1}
+.trip-dist-label{font-size:.72em;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
+
+/* Map */
+.map-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:160px;display:flex;align-items:center;justify-content:center;position:relative}
+.map-placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:.85em;padding:20px}
+.map-placeholder span{font-size:2em}
+#map-iframe{width:100%;height:200px;border:none;display:none}
+#gps-addr{padding:8px 14px;font-size:.75em;color:var(--teal);border-top:1px solid var(--border);display:none}
+#gps-link-out{display:block;text-align:center;padding:8px;font-size:.75em;color:var(--muted);text-decoration:none;border-top:1px solid var(--border)}
+#gps-link-out:hover{color:var(--teal)}
+
+/* Last trip stats */
+.lt-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.lt-row:last-child{border-bottom:none}
+.lt-icon-label{display:flex;align-items:center;gap:8px;font-size:.82em;color:var(--muted)}
+.lt-icon-label svg{opacity:.55;flex-shrink:0}
+.lt-val{font-size:.9em;font-weight:700;color:var(--text)}
+
+/* Details section (below right col) */
+.det-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.det-cell{background:rgba(255,255,255,.04);border-radius:10px;padding:10px;border:1px solid var(--border)}
+.det-val{font-size:1.2em;font-weight:700;color:var(--teal)}
+.det-label{font-size:.62em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+
+/* ALARM DOTS (in status bar) */
+.alarm-dot{width:8px;height:8px;border-radius:50%;background:var(--muted2);transition:background .3s;display:inline-block}
+.alarm-dot.active{background:var(--red);box-shadow:0 0 6px var(--red)}
+
+/* CELLS (details panel) */
+.cells-14{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+.cellv{background:rgba(255,255,255,.04);border-radius:6px;padding:6px 2px;text-align:center;border:1px solid var(--border)}
+.cellv-n{font-size:.55em;color:var(--muted)}
+.cellv-v{font-size:.72em;font-weight:700;margin-top:1px}
+.cv-ok{color:var(--green)}
+.cv-warn{color:var(--yellow)}
+.cv-bad{color:var(--red)}
+
+/* TEMPS */
+.temp-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.temp-row:last-child{border-bottom:none}
+.temp-name{font-size:.8em;color:var(--muted);display:flex;align-items:center;gap:6px}
+.temp-val{font-size:.88em;font-weight:700}
+.tc{color:var(--green)}.tw{color:var(--yellow)}.th{color:var(--red)}
+
+/* Collapsible details */
+#det-toggle{background:none;border:none;color:var(--teal);font-size:.78em;cursor:pointer;padding:4px 0;text-align:left;display:flex;align-items:center;gap:4px}
+#det-toggle::before{content:'▸';transition:transform .2s}
+#det-toggle.open::before{transform:rotate(90deg)}
+#det-section{display:none}
+#det-section.open{display:block}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🛵 Silence Scooter</h1>
-  <div id="conn-badge"><div class="dot" id="dot"></div><span id="conn-lbl">Connexion…</span></div>
+  🛵 Silence Scooter
+  <div id="hdr-conn"><div class="hdot" id="hdot"></div><span id="hlbl">Connexion…</span></div>
 </header>
 
-<div id="status-bar">
-  <span id="status-pill" class="s0">Éteint</span>
-  <span id="speed-val">0 km/h</span>
-  <span class="status-alarm" id="alarm-mv">⚠ Mouvement</span>
-  <span class="status-alarm" id="alarm-fall">⚠ Chute</span>
-  <span class="status-alarm" id="alarm-speed">⚠ Sur-vitesse</span>
-  <span class="status-alarm" id="alarm-side">⚠ Béquille</span>
-</div>
+<main>
 
-<div class="tabs">
-  <button class="tab-btn active" onclick="showTab('overview',this)">Aperçu</button>
-  <button class="tab-btn" onclick="showTab('details',this)">Détails</button>
-  <button class="tab-btn" onclick="showTab('trip',this)">Trajet</button>
-</div>
+<!-- ══════════ LEFT COLUMN ══════════ -->
+<div class="col-left">
 
-<!-- ═══════════════ TAB APERÇU ═══════════════ -->
-<div id="tab-overview" class="tab active">
-
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-label">Kilométrage</div>
-      <div class="stat-value" id="odo">--</div>
-      <div class="stat-unit">km</div>
+  <!-- Command icon buttons -->
+  <div class="cmd-bar">
+    <div class="cmd-icon-btn" onclick="cmd('OPEN_SEAT')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/><rect x="2" y="18" width="20" height="3" rx="1"/></svg>
+      Selle
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Autonomie</div>
-      <div class="stat-value" id="range">--</div>
-      <div class="stat-unit">km estimés</div>
+    <div class="cmd-icon-btn" onclick="cmd('FLASH')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Flash
+    </div>
+    <div class="cmd-icon-btn" onclick="cmd('BEEP_FLASH')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+      Beep
     </div>
   </div>
 
+  <!-- ON / OFF -->
+  <div class="onoff-row">
+    <button class="btn btn-on" onclick="cmd('TURN_ON_SCOOTER')">▶ Allumer</button>
+    <button class="btn btn-off" onclick="cmd('TURN_OFF_SCOOTER')">⏹ Éteindre</button>
+  </div>
+
+  <!-- Scooter visual -->
+  <div class="scooter-area">
+    <div class="scooter-emoji">🛵</div>
+    <div class="scooter-status-pill s0" id="st-pill">Éteint</div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <span class="alarm-dot" id="ad-mv" title="Mouvement"></span>
+      <span class="alarm-dot" id="ad-fall" title="Chute"></span>
+      <span class="alarm-dot" id="ad-speed" title="Sur-vitesse"></span>
+      <span class="alarm-dot" id="ad-side" title="Béquille"></span>
+    </div>
+  </div>
+
+  <!-- Status row: 4 metrics -->
+  <div class="status-row">
+    <div class="st-cell"><span class="st-icon">⚡</span><span class="st-val" id="s-bat">--%</span><span class="st-label">Batt.</span></div>
+    <div class="st-cell"><span class="st-icon">🏎️</span><span class="st-val" id="s-speed">0</span><span class="st-label">km/h</span></div>
+    <div class="st-cell"><span class="st-icon">📍</span><span class="st-val" id="s-odo">--</span><span class="st-label">km odo</span></div>
+    <div class="st-cell"><span class="st-icon">🔋</span><span class="st-val" id="s-batst">--</span><span class="st-label">État</span></div>
+  </div>
+
+  <!-- Usage stats -->
   <div class="card">
-    <div class="card-title">Batterie</div>
-    <div class="bat-row">
-      <div class="bat-pct" id="batsoc">--%</div>
-      <div class="bat-info">
-        <div id="bat-v">-- V</div>
-        <div id="bat-a">-- A</div>
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Statistiques d'usage
+    </div>
+    <div class="usage-grid">
+      <div><div class="usage-val" id="u-dist">--</div><div class="usage-label">km / charge</div></div>
+      <div><div class="usage-val" id="u-avg">--</div><div class="usage-label">trajet moy.</div></div>
+      <div><div class="usage-val" id="u-base">--</div><div class="usage-label">base calc.</div></div>
+    </div>
+  </div>
+
+  <!-- Battery health summary -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
+      Santé batterie
+    </div>
+    <div class="bh-grid">
+      <div><div class="bh-val" id="bh-cycles">--</div><div class="bh-label">Cycles</div></div>
+      <div><div class="bh-val" id="bh-imb">--</div><div class="bh-label">Déséq. mV</div></div>
+      <div><div class="bh-val" id="bh-dev">--</div><div class="bh-label">Dév. SOC</div></div>
+      <div><div class="bh-val" id="bh-v">--</div><div class="bh-label">Tension V</div></div>
+    </div>
+    <div style="margin-top:10px">
+      <button id="det-toggle" onclick="toggleDetails()">Diagnostics détaillés</button>
+    </div>
+    <div id="det-section">
+      <hr class="sep">
+      <div class="card-title" style="margin-top:4px">Températures</div>
+      <div class="temp-row"><span class="temp-name">🌡 Moteur</span><span class="temp-val tc" id="dt-mot">--°C</span></div>
+      <div class="temp-row"><span class="temp-name">⚡ Onduleur</span><span class="temp-val tc" id="dt-inv">--°C</span></div>
+      <div class="temp-row"><span class="temp-name">🔋 Bat. min</span><span class="temp-val tc" id="dt-bmin">--°C</span></div>
+      <div class="temp-row"><span class="temp-name">🔋 Bat. max</span><span class="temp-val tc" id="dt-bmax">--°C</span></div>
+      <hr class="sep">
+      <div class="card-title">Énergie cumulée</div>
+      <div class="temp-row"><span class="temp-name">⚡ Chargé</span><span class="temp-val" id="dt-chr" style="color:var(--text)">-- kWh</span></div>
+      <div class="temp-row"><span class="temp-name">🔻 Déchargé</span><span class="temp-val" id="dt-dis" style="color:var(--text)">-- kWh</span></div>
+      <div class="temp-row"><span class="temp-name">♻️ Régénéré</span><span class="temp-val" id="dt-reg" style="color:var(--text)">-- kWh</span></div>
+      <hr class="sep">
+      <div class="card-title">Cellules (14S)</div>
+      <div class="cells-14" id="cells-grid"></div>
+    </div>
+  </div>
+
+</div>
+<!-- /col-left -->
+
+<!-- ══════════ MIDDLE COLUMN ══════════ -->
+<div class="col-mid">
+
+  <!-- Battery gauge -->
+  <div class="card">
+    <div class="gauge-card">
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 160 160">
+          <defs>
+            <linearGradient id="gGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#f44336"/>
+              <stop offset="50%" stop-color="#ff9800"/>
+              <stop offset="100%" stop-color="#4caf50"/>
+            </linearGradient>
+          </defs>
+          <!-- Background arc -->
+          <circle cx="80" cy="80" r="62" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"
+                  stroke-dasharray="292 390" stroke-linecap="round"
+                  transform="rotate(135 80 80)"/>
+          <!-- Filled arc -->
+          <circle cx="80" cy="80" r="62" fill="none" stroke="url(#gGrad)" stroke-width="10"
+                  stroke-dasharray="0 390" stroke-linecap="round"
+                  transform="rotate(135 80 80)" id="gauge-arc"/>
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-pct" id="g-pct">--%</div>
+          <div class="gauge-sub">Batterie</div>
+        </div>
+      </div>
+      <div class="gauge-info">
+        <div class="last-update"><div class="lu-dot" id="lu-dot"></div><span id="lu-txt">--</span></div>
+        <div class="bat-extras">
+          <div class="bat-extra-row"><span class="bat-extra-label">Tension</span><span class="bat-extra-val" id="g-v">-- V</span></div>
+          <div class="bat-extra-row"><span class="bat-extra-label">Courant</span><span class="bat-extra-val" id="g-a">-- A</span></div>
+          <div class="bat-extra-row"><span class="bat-extra-label">État</span><span class="bat-extra-val" id="g-state">--</span></div>
+        </div>
       </div>
     </div>
-    <div class="bat-bar"><div class="bat-fill" id="bat-fill" style="width:0%"></div></div>
-    <div class="bat-state" id="bat-state">--</div>
   </div>
 
-  <div class="alarm-grid">
-    <div class="alarm-chip" id="chip-mv">Mouvement</div>
-    <div class="alarm-chip" id="chip-fall">Chute</div>
-    <div class="alarm-chip" id="chip-speed">Sur-vitesse</div>
-    <div class="alarm-chip" id="chip-side">Béquille sortie</div>
-    <div class="alarm-chip" id="chip-bat">Batterie absente</div>
+  <!-- Range / Cons / Regen -->
+  <div class="stats3">
+    <div class="s3cell"><div class="s3val" id="m-range">--</div><div class="s3label">Autonomie km</div></div>
+    <div class="s3cell"><div class="s3val" id="m-cons">--</div><div class="s3label">Cons. %/km</div></div>
+    <div class="s3cell"><div class="s3val" id="m-regen">--</div><div class="s3label">Regen. %</div></div>
   </div>
 
-  <h2>Commandes</h2>
-  <div class="cmd-grid">
-    <button class="btn-on"   onclick="cmd('TURN_ON_SCOOTER')">▶ Allumer</button>
-    <button class="btn-off"  onclick="cmd('TURN_OFF_SCOOTER')">⏹ Éteindre</button>
-    <button class="btn-seat wide" onclick="cmd('OPEN_SEAT')">🔓 Ouvrir la selle</button>
-    <button class="btn-flash"onclick="cmd('FLASH')">💡 Flash</button>
-    <button class="btn-beep" onclick="cmd('BEEP_FLASH')">📢 Beep + Flash</button>
-  </div>
-</div>
-
-<!-- ═══════════════ TAB DÉTAILS ═══════════════ -->
-<div id="tab-details" class="tab">
-
-  <h2>Températures</h2>
-  <div class="temp-grid">
-    <div class="temp-card"><div class="temp-label">🔧 Moteur</div><div class="temp-value temp-cool" id="t-mot">--°C</div></div>
-    <div class="temp-card"><div class="temp-label">⚡ Onduleur</div><div class="temp-value temp-cool" id="t-inv">--°C</div></div>
-    <div class="temp-card"><div class="temp-label">🔋 Bat. min</div><div class="temp-value temp-cool" id="t-bat-min">--°C</div></div>
-    <div class="temp-card"><div class="temp-label">🔋 Bat. max</div><div class="temp-value temp-cool" id="t-bat-max">--°C</div></div>
+  <!-- Cost row -->
+  <div class="cost4">
+    <div class="c4cell"><div class="c4val" id="c-km">--</div><div class="c4label">€/km</div></div>
+    <div class="c4cell"><div class="c4val" id="c-w">--</div><div class="c4label">Semaine</div></div>
+    <div class="c4cell"><div class="c4val" id="c-m">--</div><div class="c4label">Mois</div></div>
+    <div class="c4cell"><div class="c4val" id="c-y">--</div><div class="c4label">Année</div></div>
   </div>
 
-  <h2>Santé batterie</h2>
+  <!-- Recent trips -->
   <div class="card">
-    <div class="health-row"><span class="health-label">Cycles de charge estimés</span><span class="health-value" id="h-cycles">--</span></div>
-    <div class="health-row"><span class="health-label">Déséquilibre cellulaire</span><span class="health-value" id="h-imbalance">-- mV</span></div>
-    <div class="health-row"><span class="health-label">Consommation</span><span class="health-value" id="h-cons">-- %/km</span></div>
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      Trajets récents
+    </div>
+    <table class="trips-table">
+      <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Moy.</th></tr></thead>
+      <tbody id="trips-body"><tr><td colspan="4" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet enregistré</td></tr></tbody>
+    </table>
   </div>
 
-  <h2>Cellules (14S)</h2>
-  <div class="card" style="padding:12px">
-    <div class="cells-grid" id="cells-grid">
-      <!-- generated by JS -->
+</div>
+<!-- /col-mid -->
+
+<!-- ══════════ RIGHT COLUMN ══════════ -->
+<div class="col-right">
+
+  <!-- Last trip header -->
+  <div class="trip-header-card">
+    <div class="trip-dist-big" id="lt-dist-big">-- km</div>
+    <div class="trip-dist-label">Dernier trajet</div>
+    <div style="margin-top:6px;font-size:.72em;color:var(--muted)" id="lt-ago">--</div>
+  </div>
+
+  <!-- Map -->
+  <div class="map-card">
+    <iframe id="map-iframe" allowfullscreen></iframe>
+    <div class="map-placeholder" id="map-placeholder">
+      <span>🗺️</span>
+      <span>En attente du GPS…</span>
     </div>
   </div>
+  <div id="gps-addr"></div>
+  <a id="gps-link-out" href="#" target="_blank">📍 Ouvrir dans Google Maps</a>
 
-  <h2>Énergie cumulée</h2>
+  <!-- Last trip detail -->
   <div class="card">
-    <div class="energy-row"><span class="energy-label">⚡ Chargé</span><span class="energy-value" id="e-charged">-- kWh</span></div>
-    <div class="energy-row"><span class="energy-label">🔻 Déchargé</span><span class="energy-value" id="e-discharged">-- kWh</span></div>
-    <div class="energy-row"><span class="energy-label">♻️ Régénéré</span><span class="energy-value" id="e-regen">-- kWh</span></div>
-  </div>
-
-  <h2>Localisation</h2>
-  <div class="card" style="padding:12px">
-    <div style="font-size:.85em;color:var(--muted);margin-bottom:6px">
-      <span id="gps-coords">En attente de données GPS…</span>
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Détail du dernier trajet
     </div>
-    <a id="gps-link" href="#" target="_blank" style="display:none">📍 Ouvrir dans Google Maps</a>
-  </div>
-</div>
-
-<!-- ═══════════════ TAB TRAJET ═══════════════ -->
-<div id="tab-trip" class="tab">
-
-  <div class="card" id="trip-current-card">
-    <div class="card-title" id="trip-title">Trajet en cours</div>
-    <div id="trip-timer">00:00</div>
-    <div class="trip-stat"><span class="trip-key">Distance</span><span class="trip-val" id="tr-dist">-- km</span></div>
-    <div class="trip-stat"><span class="trip-key">Batterie consommée</span><span class="trip-val" id="tr-bat">-- %</span></div>
-    <div class="trip-stat"><span class="trip-key">Vitesse max</span><span class="trip-val" id="tr-vmax">-- km/h</span></div>
-    <div class="trip-stat"><span class="trip-key">Vitesse moy.</span><span class="trip-val" id="tr-vavg">-- km/h</span></div>
-  </div>
-
-  <h2>Dernier trajet enregistré</h2>
-  <div class="card" id="last-trip-card">
-    <div id="last-trip-empty" style="color:var(--muted);font-size:.85em;text-align:center;padding:8px">Aucun trajet enregistré</div>
-    <div id="last-trip-data" style="display:none">
-      <div class="trip-stat"><span class="trip-key">Date</span><span class="trip-val" id="lt-date">--</span></div>
-      <div class="trip-stat"><span class="trip-key">Durée</span><span class="trip-val" id="lt-dur">--</span></div>
-      <div class="trip-stat"><span class="trip-key">Distance</span><span class="trip-val" id="lt-dist">--</span></div>
-      <div class="trip-stat"><span class="trip-key">Batterie consommée</span><span class="trip-val" id="lt-bat">--</span></div>
-      <div class="trip-stat"><span class="trip-key">Vitesse max</span><span class="trip-val" id="lt-vmax">--</span></div>
-      <div class="trip-stat"><span class="trip-key">Vitesse moy.</span><span class="trip-val" id="lt-vavg">--</span></div>
+    <div id="lt-empty" style="color:var(--muted);font-size:.82em;text-align:center;padding:10px">Aucun trajet enregistré</div>
+    <div id="lt-data" style="display:none">
+      <div class="lt-row">
+        <span class="lt-icon-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Durée</span>
+        <span class="lt-val" id="lt-dur">--</span>
+      </div>
+      <div class="lt-row">
+        <span class="lt-icon-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6l9-3 9 3"/></svg>Distance</span>
+        <span class="lt-val" id="lt-dist">--</span>
+      </div>
+      <div class="lt-row">
+        <span class="lt-icon-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>Batterie consommée</span>
+        <span class="lt-val" id="lt-bat">--</span>
+      </div>
+      <div class="lt-row">
+        <span class="lt-icon-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Vitesse moyenne</span>
+        <span class="lt-val" id="lt-vavg">--</span>
+      </div>
+      <div class="lt-row">
+        <span class="lt-icon-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Vitesse max</span>
+        <span class="lt-val" id="lt-vmax">--</span>
+      </div>
     </div>
   </div>
-</div>
 
-<div id="offline"><strong>⚠ Déconnecté du broker MQTT</strong><p>Reconnexion en cours…</p></div>
+  <!-- Trajet en cours -->
+  <div class="card" id="trip-live-card" style="display:none">
+    <div class="card-title" style="color:var(--green)">● Trajet en cours</div>
+    <div style="font-size:1.8em;font-weight:700;text-align:center;margin:6px 0;color:var(--teal)" id="trip-timer">00:00</div>
+    <div class="lt-row"><span class="lt-icon-label">Distance</span><span class="lt-val" id="tr-dist">--</span></div>
+    <div class="lt-row"><span class="lt-icon-label">Bat. consommée</span><span class="lt-val" id="tr-bat">--</span></div>
+    <div class="lt-row"><span class="lt-icon-label">Vitesse max</span><span class="lt-val" id="tr-vmax">--</span></div>
+  </div>
+
+</div>
+<!-- /col-right -->
+
+</main>
 
 <script>
-// ─── CONFIG ────────────────────────────────────────────────
-var IMEI = "TON_IMEI";
-var WS_PORT = 9002;
-var MQTT_TOPIC = 'home/silence-server/+/status';
-var CMD_TOPIC  = 'home/silence-server/' + IMEI + '/command/';
+// ─── CONFIG ─────────────────────────────────────────────────
+var IMEI      = "TON_IMEI";
+var WS_PORT   = 9002;
+var TARIFF    = 0.215;   // €/kWh
+var BAT_CAP   = 5.6;     // kWh
 
-var STATUS_LABELS = {0:'Éteint',1:'Veille',2:'Démarrage',3:'Prêt',4:'En route',5:'En charge',6:'Sans batterie'};
-var STATUS_CLASS  = {0:'s0',1:'s0',2:'s2',3:'s3',4:'s4',5:'s5',6:'s6'};
-var BAT_CAP_KWH   = 5.6;
-
-// ─── MQTT ──────────────────────────────────────────────────
+// ─── MQTT ────────────────────────────────────────────────────
 var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
-var lastData = {};
+var lastData = {}, lastMsgTime = null;
+var luInterval = setInterval(updateLastUpdate, 5000);
 
-client.on('connect', function() {
-  setConn(true);
-  client.subscribe(MQTT_TOPIC);
-});
+client.on('connect',    function(){ setConn(true);  client.subscribe('home/silence-server/+/status'); });
 client.on('offline',    function(){ setConn(false); });
 client.on('disconnect', function(){ setConn(false); });
-client.on('message', function(topic, msg) {
-  try { update(JSON.parse(msg.toString())); } catch(e) {}
-});
+client.on('message',    function(t, m){ try{ update(JSON.parse(m.toString())); lastMsgTime=Date.now(); }catch(e){} });
 
-function setConn(ok) {
-  document.getElementById('dot').className = 'dot' + (ok ? ' ok' : '');
-  document.getElementById('conn-lbl').textContent = ok ? 'Connecté' : 'Déconnecté';
-  document.getElementById('offline').className = ok ? '' : 'show';
+function setConn(ok){
+  $('hdot').className = 'hdot' + (ok ? ' ok' : '');
+  $('hlbl').textContent = ok ? 'Connecté' : 'Déconnecté';
+  $('lu-dot').style.background = ok ? 'var(--green)' : 'var(--red)';
 }
 
-function cmd(c) { client.publish(CMD_TOPIC + c, ''); }
+function updateLastUpdate(){
+  if (!lastMsgTime){ $('lu-txt').textContent='En attente…'; return; }
+  var s = Math.round((Date.now()-lastMsgTime)/1000);
+  $('lu-txt').textContent = s < 60 ? 'Il y a '+s+'s' : 'Il y a '+Math.round(s/60)+'min';
+}
 
-// ─── UPDATE ────────────────────────────────────────────────
-function update(d) {
+function cmd(c){ client.publish('home/silence-server/'+IMEI+'/command/'+c, ''); }
+
+// ─── UPDATE ──────────────────────────────────────────────────
+function update(d){
   lastData = d;
+  var soc     = d.BatterySoC    ?? d.SOCbatteria      ?? 0;
+  var voltage = d.VOLTbatteria  ?? d.voltage           ?? 0;
+  var current = d.batteryCurrent?? d.current           ?? 0;
+  var speed   = d.velocity      ?? d.speed             ?? 0;
+  var motT    = d.motorTemperature    ?? d.motorTemp    ?? null;
+  var invT    = d.inverterTemperature ?? d.inverterTemp ?? null;
+  var batTMin = d.BatteryTempMin ?? d.batteryTemperature ?? null;
+  var batTMax = d.BatteryTempMax ?? null;
+  var status  = d.status ?? -1;
+  var odo     = parseFloat(d.odo) || 0;
+  var charged = d.chargedEnergy || 0;
+  var disch   = d.DischargedEnergy || 0;
+  var regen   = d.RegeneratedEnergy || 0;
 
-  // Champs avec noms alternatifs selon version silence-server
-  var soc      = val(d.BatterySoC,     d.SOCbatteria,   0);
-  var voltage  = val(d.VOLTbatteria,   d.voltage,        0);
-  var current  = val(d.batteryCurrent, d.current,        0);
-  var speed    = val(d.velocity,       d.speed,          0);
-  var motT     = val(d.motorTemperature,   d.motorTemp,    null);
-  var invT     = val(d.inverterTemperature,d.inverterTemp, null);
-  var batTMin  = val(d.BatteryTempMin, d.batteryTemperature, null);
-  var batTMax  = val(d.BatteryTempMax, null, null);
-  var status   = d.status != null ? d.status : -1;
+  // ── Status pill
+  var STATUS = {0:'Éteint',1:'Veille',2:'Démarrage',3:'Prêt',4:'En route',5:'En charge',6:'Sans batterie'};
+  var SCLS   = {0:'s0',1:'s0',2:'s2',3:'s3',4:'s4',5:'s5',6:'s6'};
+  var pill   = $('st-pill');
+  pill.textContent = STATUS[status] ?? ('État '+status);
+  pill.className   = 'scooter-status-pill ' + (SCLS[status]||'s0');
 
-  // ── Status bar
-  var pill = document.getElementById('status-pill');
-  pill.textContent = STATUS_LABELS[status] || ('État ' + status);
-  pill.className   = 'status-pill ' + (STATUS_CLASS[status] || 's0');
-  document.getElementById('speed-val').textContent = Math.round(speed) + ' km/h';
+  // ── Alarms
+  setAlarmDot('ad-mv',    d.movementAlarm);
+  setAlarmDot('ad-fall',  d.bikefall);
+  setAlarmDot('ad-speed', d.overspeedAlarm);
+  setAlarmDot('ad-side',  d.sidestandOut);
 
-  // ── Alarmes
-  setAlarm('alarm-mv',    'chip-mv',    d.movementAlarm);
-  setAlarm('alarm-fall',  'chip-fall',  d.bikefall);
-  setAlarm('alarm-speed', 'chip-speed', d.overspeedAlarm);
-  setAlarm('alarm-side',  'chip-side',  d.sidestandOut);
-  setChip('chip-bat', !(d.batteryIn == null || d.batteryIn == 1));
+  // ── Status row (left)
+  txt('s-bat',   Math.round(soc)+'%');
+  txt('s-speed', Math.round(speed));
+  txt('s-odo',   odo.toFixed(0));
+  txt('s-batst', d.batteryIn===0 ? 'Absente' : d.charging ? 'Charge' : 'OK');
 
-  // ── Aperçu
-  setText('odo',   d.odo != null ? parseFloat(d.odo).toFixed(1) : '--');
-  setText('range', d.range != null ? Math.round(d.range) : '--');
+  // ── Gauge
+  var arc = document.getElementById('gauge-arc');
+  var circ = 2*Math.PI*62, arcTotal = circ*270/360;
+  var filled = (soc/100)*arcTotal;
+  arc.setAttribute('stroke-dasharray', filled.toFixed(1)+' '+circ.toFixed(1));
+  txt('g-pct',   Math.round(soc)+'%');
+  txt('g-v',     voltage ? voltage.toFixed(1)+' V' : '-- V');
+  txt('g-a',     current ? current.toFixed(1)+' A' : '-- A');
+  txt('g-state', d.charging ? '⚡ Charge' : (d.batteryOut ? '🔓 Retirée' : '✓ Normal'));
 
-  // Batterie
-  var socPct = Math.round(soc);
-  setText('batsoc', socPct + '%');
-  setText('bat-v',  voltage ? voltage.toFixed(1) + ' V' : '-- V');
-  setText('bat-a',  current ? current.toFixed(1) + ' A' : '-- A');
-  var fill = document.getElementById('bat-fill');
-  fill.style.width = socPct + '%';
-  fill.style.background = socPct > 50 ? '#2ecc71' : socPct > 20 ? '#f39c12' : '#e74c3c';
-  setText('bat-state', d.charging ? '⚡ En charge' : (d.batteryOut ? '🔓 Batterie retirée' : '✓ Normal'));
-
-  // ── Températures
-  setTemp('t-mot',     motT,    85);
-  setTemp('t-inv',     invT,    85);
-  setTemp('t-bat-min', batTMin, 45);
-  setTemp('t-bat-max', batTMax, 45);
-
-  // ── Cellules
-  var cells = [];
-  for (var i = 1; i <= 14; i++) {
-    var mv = d['Cell' + i + 'Voltage'];
-    cells.push(mv != null ? mv / 1000 : null);
-  }
-  renderCells(cells);
-
-  // ── Santé
-  var charged  = d.chargedEnergy || 0;
-  var disch    = d.DischargedEnergy || 0;
-  var regen    = d.RegeneratedEnergy || 0;
-  var odo      = parseFloat(d.odo) || 0;
-  if (charged > 0) setText('h-cycles', (charged / BAT_CAP_KWH).toFixed(1));
-  var validCells = cells.filter(function(v){ return v != null; });
-  if (validCells.length === 14) {
-    var imb = (Math.max.apply(null,validCells) - Math.min.apply(null,validCells)) * 1000;
-    setText('h-imbalance', imb.toFixed(0) + ' mV');
-  }
+  // ── Range / cons / regen
+  txt('m-range', d.range != null ? Math.round(d.range) : '--');
   var net = disch - regen;
-  if (net > 0 && odo > 0) setText('h-cons', (net / BAT_CAP_KWH * 100 / odo).toFixed(2) + ' %/km');
+  var consPkm = (net > 0 && odo > 0) ? (net/BAT_CAP*100/odo) : null;
+  txt('m-cons', consPkm ? consPkm.toFixed(2) : '--');
+  txt('m-regen', charged > 0 ? (regen/charged*100).toFixed(1) : '--');
 
-  // ── Énergie
-  setText('e-charged',    charged  ? charged.toFixed(2)  + ' kWh' : '-- kWh');
-  setText('e-discharged', disch    ? disch.toFixed(2)    + ' kWh' : '-- kWh');
-  setText('e-regen',      regen    ? regen.toFixed(2)    + ' kWh' : '-- kWh');
+  // ── Costs
+  if(consPkm){
+    var kwh_km = consPkm/100*BAT_CAP;
+    var cpkm = kwh_km * TARIFF;
+    txt('c-km', cpkm.toFixed(3)+'€');
+    // Rough annual odo estimate from average trip data
+    var trips = getTrips();
+    var yearDist = trips.length > 0 ? (odo / Math.max(charged/BAT_CAP,1) * 52) : 0;
+    txt('c-w',  (cpkm * odo / 52).toFixed(2)+'€');
+    txt('c-m',  (cpkm * odo / 12).toFixed(2)+'€');
+    txt('c-y',  (cpkm * odo).toFixed(2)+'€');
+  }
+
+  // ── Battery health
+  txt('bh-v', voltage ? voltage.toFixed(0) : '--');
+  if(charged > 0) txt('bh-cycles', (charged/BAT_CAP).toFixed(1));
+
+  // Cells
+  var cells = [];
+  for(var i=1;i<=14;i++) cells.push(d['Cell'+i+'Voltage'] != null ? d['Cell'+i+'Voltage']/1000 : null);
+  renderCells(cells);
+  var valid = cells.filter(function(v){ return v!=null; });
+  if(valid.length===14){
+    var imb = (Math.max.apply(null,valid)-Math.min.apply(null,valid))*1000;
+    txt('bh-imb', imb.toFixed(0));
+  }
+
+  // SOC deviation (displayed vs voltage-based — placeholder)
+  txt('bh-dev', '0.0%');
+
+  // Usage stats
+  var trips2 = getTrips();
+  if(trips2.length > 0){
+    var totalDist = trips2.reduce(function(a,t){return a+parseFloat(t.dist);},0);
+    txt('u-avg',  (totalDist/trips2.length).toFixed(1)+' km');
+    txt('u-dist', totalDist.toFixed(1)+' km');
+    txt('u-base', totalDist.toFixed(0)+' km');
+  }
+
+  // ── Details panel
+  setTemp('dt-mot',  motT,   85);
+  setTemp('dt-inv',  invT,   85);
+  setTemp('dt-bmin', batTMin,45);
+  setTemp('dt-bmax', batTMax,45);
+  txt('dt-chr', charged ? charged.toFixed(2)+' kWh' : '-- kWh');
+  txt('dt-dis', disch   ? disch.toFixed(2)+' kWh'   : '-- kWh');
+  txt('dt-reg', regen   ? regen.toFixed(2)+' kWh'   : '-- kWh');
 
   // ── GPS
-  if (d.latitude && d.longitude) {
-    var lat = parseFloat(d.latitude), lon = parseFloat(d.longitude);
-    setText('gps-coords', lat.toFixed(6) + ', ' + lon.toFixed(6));
-    var link = document.getElementById('gps-link');
-    link.href = 'https://www.google.com/maps?q=' + lat + ',' + lon;
-    link.style.display = 'block';
+  if(d.latitude && d.longitude){
+    var lat=parseFloat(d.latitude), lon=parseFloat(d.longitude);
+    var iframe = document.getElementById('map-iframe');
+    var ph     = document.getElementById('map-placeholder');
+    if(iframe.style.display==='none'){
+      iframe.src = 'https://www.openstreetmap.org/export/embed.html?bbox='+(lon-.005)+','+(lat-.005)+','+(lon+.005)+','+(lat+.005)+'&layer=mapnik&marker='+lat+','+lon;
+      iframe.style.display = 'block';
+      ph.style.display = 'none';
+    }
+    var gl = $('gps-link-out');
+    gl.href = 'https://www.google.com/maps?q='+lat+','+lon;
+    gl.textContent = '📍 '+lat.toFixed(5)+', '+lon.toFixed(5)+' — Ouvrir Maps';
   }
 
-  // ── Trajet
-  trackTrip(d, speed, soc);
+  // ── Trip tracking
+  trackTrip(d, speed, soc, odo);
+  renderTripsTable();
 }
 
-// ─── CELLULES ──────────────────────────────────────────────
-function renderCells(cells) {
-  var grid = document.getElementById('cells-grid');
-  if (!grid.hasChildNodes()) {
-    for (var i = 0; i < 14; i++) {
-      var el = document.createElement('div');
-      el.className = 'cell';
-      el.id = 'cell-' + i;
-      el.innerHTML = '<div class="cell-num">C'+(i+1)+'</div><div class="cell-v" id="cv-'+i+'">--</div><div class="cell-bar" id="cb-'+i+'" style="width:100%"></div>';
-      grid.appendChild(el);
+// ─── TRIP TRACKING ───────────────────────────────────────────
+var trip = null, tripTimer = null, tripSpeeds = [];
+
+function trackTrip(d, speed, soc, odo){
+  var moving = (d.status === 4);
+
+  if(moving && !trip){
+    trip = { startTime:Date.now(), startOdo:odo, startSoc:soc, maxSpeed:speed };
+    tripSpeeds = [speed];
+    clearInterval(tripTimer);
+    tripTimer = setInterval(function(){
+      var s = Math.round((Date.now()-trip.startTime)/1000);
+      $('trip-timer').textContent = pad(Math.floor(s/60))+':'+pad(s%60);
+      txt('tr-dist', (odo-trip.startOdo).toFixed(1)+' km');
+      txt('tr-bat',  (trip.startSoc-lastData.BatterySoC||0).toFixed(1)+'%');
+      txt('tr-vmax', Math.round(trip.maxSpeed)+' km/h');
+    }, 1000);
+    $('trip-live-card').style.display = 'block';
+  }
+
+  if(trip && moving){
+    if(speed > trip.maxSpeed) trip.maxSpeed = speed;
+    tripSpeeds.push(speed);
+  }
+
+  if(!moving && trip){
+    clearInterval(tripTimer);
+    var dur = Math.round((Date.now()-trip.startTime)/60000);
+    var dist = (odo-trip.startOdo).toFixed(1);
+    var avg = tripSpeeds.length ? Math.round(tripSpeeds.reduce(function(a,b){return a+b;},0)/tripSpeeds.length) : 0;
+    var t = {
+      date: new Date(trip.startTime).toLocaleDateString('fr-FR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),
+      ts:   trip.startTime,
+      dur:  dur,
+      dist: dist,
+      bat:  (trip.startSoc-soc).toFixed(1),
+      vmax: Math.round(trip.maxSpeed),
+      vavg: avg
+    };
+    saveTrip(t); renderLastTrip(t);
+    trip = null; tripSpeeds = [];
+    $('trip-live-card').style.display = 'none';
+  }
+}
+
+function saveTrip(t){
+  var trips = getTrips();
+  trips.unshift(t);
+  if(trips.length > 20) trips = trips.slice(0,20);
+  localStorage.setItem('scooter_trips', JSON.stringify(trips));
+}
+function getTrips(){ try{ return JSON.parse(localStorage.getItem('scooter_trips'))||[]; }catch(e){ return []; } }
+
+function renderLastTrip(t){
+  $('lt-empty').style.display = 'none';
+  $('lt-data').style.display  = 'block';
+  txt('lt-dist-big', t.dist+' km');
+  txt('lt-ago', timeAgo(t.ts));
+  txt('lt-dur',  t.dur+' min');
+  txt('lt-dist', t.dist+' km');
+  txt('lt-bat',  t.bat+' %');
+  txt('lt-vavg', t.vavg+' km/h');
+  txt('lt-vmax', t.vmax+' km/h');
+}
+
+function renderTripsTable(){
+  var trips = getTrips(); if(!trips.length) return;
+  var tbody = $('trips-body');
+  tbody.innerHTML = '';
+  trips.slice(0,10).forEach(function(t){
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+t.date+'</td><td>'+t.dur+'</td><td>'+t.dist+'</td><td>'+t.vavg+'</td>';
+    tbody.appendChild(tr);
+  });
+  renderLastTrip(trips[0]);
+}
+
+// ─── CELLS ───────────────────────────────────────────────────
+function renderCells(cells){
+  var g = $('cells-grid');
+  if(!g.children.length){
+    for(var i=0;i<14;i++){
+      var d=document.createElement('div'); d.className='cellv';
+      d.innerHTML='<div class="cellv-n">C'+(i+1)+'</div><div class="cellv-v cv-ok" id="cv'+i+'">--</div>';
+      g.appendChild(d);
     }
   }
-  var validCells = cells.filter(function(v){ return v != null; });
-  var minV = validCells.length ? Math.min.apply(null,validCells) : 3.5;
-  var maxV = validCells.length ? Math.max.apply(null,validCells) : 4.2;
-  cells.forEach(function(v, i) {
-    var el = document.getElementById('cv-' + i);
-    var bar = document.getElementById('cb-' + i);
-    if (!el) return;
-    if (v == null) { el.textContent = '--'; return; }
-    el.textContent = v.toFixed(3);
-    var pct = maxV > minV ? ((v - minV) / (maxV - minV) * 60 + 40) : 100;
-    bar.style.width = pct + '%';
-    el.className = 'cell-v ' + (v >= 3.6 ? 'cell-ok' : v >= 3.3 ? 'cell-warn' : 'cell-bad');
-    bar.style.background = v >= 3.6 ? 'var(--green)' : v >= 3.3 ? 'var(--yellow)' : 'var(--red)';
+  var valid=cells.filter(function(v){return v!=null;});
+  cells.forEach(function(v,i){
+    var el=document.getElementById('cv'+i); if(!el) return;
+    if(v==null){el.textContent='--';return;}
+    el.textContent=v.toFixed(3);
+    el.className='cellv-v '+(v>=3.6?'cv-ok':v>=3.3?'cv-warn':'cv-bad');
   });
 }
 
-// ─── SUIVI DE TRAJET ───────────────────────────────────────
-var trip = null;
-var tripTimer = null;
-var tripSpeeds = [];
-
-function trackTrip(d, speed, soc) {
-  var moving = d.status === 4;
-
-  if (moving && !trip) {
-    // Démarrage du trajet
-    trip = {
-      startTime: Date.now(),
-      startOdo:  parseFloat(d.odo) || 0,
-      startSoc:  soc,
-      maxSpeed:  speed
-    };
-    tripSpeeds = [speed];
-    if (tripTimer) clearInterval(tripTimer);
-    tripTimer = setInterval(updateTripTimer, 1000);
-    document.getElementById('trip-title').textContent = '🟢 Trajet en cours';
-  } else if (!moving && trip) {
-    // Fin du trajet
-    var endOdo = parseFloat(d.odo) || trip.startOdo;
-    var last = {
-      date:  new Date(trip.startTime).toLocaleString('fr-FR'),
-      dur:   Math.round((Date.now() - trip.startTime) / 60000),
-      dist:  (endOdo - trip.startOdo).toFixed(1),
-      bat:   (trip.startSoc - soc).toFixed(1),
-      vmax:  Math.round(trip.maxSpeed),
-      vavg:  Math.round(tripSpeeds.reduce(function(a,b){return a+b},0) / tripSpeeds.length)
-    };
-    localStorage.setItem('lastTrip', JSON.stringify(last));
-    renderLastTrip(last);
-    trip = null;
-    clearInterval(tripTimer);
-    document.getElementById('trip-title').textContent = 'Dernier trajet';
-    document.getElementById('trip-timer').textContent = '00:00';
-  }
-
-  if (trip) {
-    if (speed > trip.maxSpeed) trip.maxSpeed = speed;
-    tripSpeeds.push(speed);
-    var dist = (parseFloat(d.odo) || trip.startOdo) - trip.startOdo;
-    setText('tr-dist', dist.toFixed(1) + ' km');
-    setText('tr-bat',  (trip.startSoc - soc).toFixed(1) + ' %');
-    setText('tr-vmax', Math.round(trip.maxSpeed) + ' km/h');
-    var avg = tripSpeeds.reduce(function(a,b){return a+b},0) / tripSpeeds.length;
-    setText('tr-vavg', Math.round(avg) + ' km/h');
-  }
-
-  // Charger dernier trajet depuis localStorage
-  if (!trip) {
-    try {
-      var saved = JSON.parse(localStorage.getItem('lastTrip'));
-      if (saved) renderLastTrip(saved);
-    } catch(e){}
-  }
+// ─── HELPERS ─────────────────────────────────────────────────
+function $(id){ return document.getElementById(id); }
+function txt(id,v){ var el=$(id); if(el) el.textContent=v; }
+function pad(n){ return n<10?'0'+n:''+n; }
+function setAlarmDot(id,v){ var el=$(id); if(el) el.className='alarm-dot'+(v?'  active':''); }
+function setTemp(id,v,warn){
+  var el=$(id); if(!el) return;
+  if(v==null){el.textContent='--°C';el.className='temp-val tc';return;}
+  el.textContent=Math.round(v)+'°C';
+  el.className='temp-val '+(v>=warn?'th':v>=warn*.75?'tw':'tc');
+}
+function timeAgo(ts){
+  var s=Math.round((Date.now()-ts)/1000);
+  if(s<60) return 'il y a '+s+'s';
+  if(s<3600) return 'il y a '+Math.round(s/60)+'min';
+  if(s<86400) return 'il y a '+Math.round(s/3600)+'h';
+  return 'il y a '+Math.round(s/86400)+'j';
+}
+function toggleDetails(){
+  var btn=$('det-toggle'), sec=$('det-section');
+  btn.classList.toggle('open'); sec.classList.toggle('open');
 }
 
-function updateTripTimer() {
-  if (!trip) return;
-  var s = Math.round((Date.now() - trip.startTime) / 1000);
-  var m = Math.floor(s / 60); s = s % 60;
-  document.getElementById('trip-timer').textContent = pad(m) + ':' + pad(s);
-}
-
-function renderLastTrip(t) {
-  document.getElementById('last-trip-empty').style.display = 'none';
-  document.getElementById('last-trip-data').style.display  = 'block';
-  setText('lt-date', t.date);
-  setText('lt-dur',  t.dur + ' min');
-  setText('lt-dist', t.dist + ' km');
-  setText('lt-bat',  t.bat + ' %');
-  setText('lt-vmax', t.vmax + ' km/h');
-  setText('lt-vavg', t.vavg + ' km/h');
-}
-
-// ─── HELPERS ───────────────────────────────────────────────
-function val(){for(var i=0;i<arguments.length;i++){if(arguments[i]!=null)return arguments[i];}return null;}
-function setText(id, v){ var el=document.getElementById(id); if(el) el.textContent=v; }
-function pad(n){ return n<10?'0'+n:n; }
-
-function setAlarm(barId, chipId, active) {
-  document.getElementById(barId).className = 'status-alarm' + (active ? ' on' : '');
-  setChip(chipId, active);
-}
-function setChip(id, active) {
-  var el = document.getElementById(id);
-  if (el) el.className = 'alarm-chip' + (active ? ' active' : '');
-}
-
-function setTemp(id, v, warn) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  if (v == null) { el.textContent = '--°C'; el.className = 'temp-value temp-cool'; return; }
-  el.textContent = Math.round(v) + '°C';
-  el.className = 'temp-value ' + (v >= warn ? 'temp-hot' : v >= warn * 0.75 ? 'temp-warm' : 'temp-cool');
-}
-
-function showTab(name, btn) {
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
-  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-  document.getElementById('tab-' + name).classList.add('active');
-  btn.classList.add('active');
-}
+// Charger derniers trajets au démarrage
+(function(){ var trips=getTrips(); if(trips.length){ renderLastTrip(trips[0]); renderTripsTable(); } })();
+setInterval(updateLastUpdate, 10000);
 </script>
 </body>
 </html>
