@@ -3,6 +3,9 @@ services:
   init:
     image: alpine:latest
     environment:
+      # Définir IMEI dans Portainer : section "Environment variables" sous l'éditeur YAML
+      # Nom : IMEI  |  Valeur : votre numéro (ex: 860873040820135)
+      # Ne pas modifier cette ligne ni mettre l'IMEI directement dans le YAML.
       - IMEI=${IMEI:-TON_IMEI}
     volumes:
       - mosquitto-config:/mosquitto-config
