@@ -7,7 +7,7 @@ services:
     volumes:
       - mosquitto-config:/mosquitto-config
       - silence-config:/silence-config
-      - nodered-data:/nodered-data
+      - dashboard-data:/dashboard-data
     command:
       - sh
       - -c
@@ -18,16 +18,11 @@ services:
         wget -qO /mosquitto-config/mosquitto.conf \
           "$$RAW/mosquitto/mosquitto.conf"
 
-        wget -qO- "$$RAW/silence/configuration.template.json" | \
-          sed "s/TON_IMEI/$$IMEI/g" > /silence-config/configuration.json
+        wget -qO /tmp/config.json "$$RAW/silence/configuration.template.json"
+        sed "s/TON_IMEI/$$IMEI/g" /tmp/config.json > /silence-config/configuration.json
 
-        wget -qO /nodered-data/package.json \
-          "$$RAW/nodered/package.json"
-
-        if [ ! -f /nodered-data/flows.json ]; then
-          wget -qO- "$$RAW/nodered/flows.template.json" | \
-            sed "s/TON_IMEI/$$IMEI/g" > /nodered-data/flows.json
-        fi
+        wget -qO /tmp/index.html "$$RAW/dashboard/index.template.html"
+        sed "s/TON_IMEI/$$IMEI/g" /tmp/index.html > /dashboard-data/index.html
 
         echo "Init done!"
 
@@ -38,6 +33,8 @@ services:
     depends_on:
       init:
         condition: service_completed_successfully
+    ports:
+      - "9002:9001"
     volumes:
       - mosquitto-config:/mosquitto/config
       - mosquitto-data:/mosquitto/data
@@ -64,23 +61,20 @@ services:
       - silence-config:/config
     entrypoint: sh -c "cp /config/configuration.json /app/configuration.json && python silence-server.py"
 
-  nodered:
-    image: nodered/node-red:latest
-    container_name: nodered
+  dashboard:
+    image: nginx:alpine
+    container_name: silence-dashboard
     restart: unless-stopped
     depends_on:
       init:
         condition: service_completed_successfully
-      mosquitto:
-        condition: service_started
     ports:
-      - "1880:1880"
+      - "8083:80"
     volumes:
-      - nodered-data:/data
-    entrypoint: sh -c "cd /data && npm install 2>&1 | tail -3 && node-red --userDir /data"
+      - dashboard-data:/usr/share/nginx/html:ro
 
 volumes:
   mosquitto-config:
   mosquitto-data:
   silence-config:
-  nodered-data:
+  dashboard-data:

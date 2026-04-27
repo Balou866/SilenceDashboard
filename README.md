@@ -7,12 +7,12 @@ Basé sur [silence-private-server](https://github.com/lorenzo-deluca/silence-pri
 ## Architecture
 
 ```
-Scooter ──TCP 38955──► silence-server ──MQTT──► mosquitto ──MQTT──► Node-RED ──► navigateur :1880/ui
+Scooter ──TCP 38955──► silence-server ──MQTT──► mosquitto ──WebSocket 9002──► navigateur :8083
 ```
 
 - **silence-server** : proxy TCP qui intercepte la connexion du scooter et publie la télémétrie en MQTT
-- **mosquitto** : broker MQTT interne
-- **Node-RED** : dashboard web avec jauges, état, et boutons de commande
+- **mosquitto** : broker MQTT (port 1883 interne + port 9001 WebSocket exposé sur 9002)
+- **dashboard** : page HTML statique servie par nginx, se connecte directement au broker via MQTT/WebSocket
 
 ## Prérequis
 
@@ -39,7 +39,7 @@ services:
     volumes:
       - mosquitto-config:/mosquitto-config
       - silence-config:/silence-config
-      - nodered-data:/nodered-data
+      - dashboard-data:/dashboard-data
     command:
       - sh
       - -c
@@ -50,16 +50,11 @@ services:
         wget -qO /mosquitto-config/mosquitto.conf \
           "$$RAW/mosquitto/mosquitto.conf"
 
-        wget -qO- "$$RAW/silence/configuration.template.json" | \
-          sed "s/TON_IMEI/$$IMEI/g" > /silence-config/configuration.json
+        wget -qO /tmp/config.json "$$RAW/silence/configuration.template.json"
+        sed "s/TON_IMEI/$$IMEI/g" /tmp/config.json > /silence-config/configuration.json
 
-        wget -qO /nodered-data/package.json \
-          "$$RAW/nodered/package.json"
-
-        if [ ! -f /nodered-data/flows.json ]; then
-          wget -qO- "$$RAW/nodered/flows.template.json" | \
-            sed "s/TON_IMEI/$$IMEI/g" > /nodered-data/flows.json
-        fi
+        wget -qO /tmp/index.html "$$RAW/dashboard/index.template.html"
+        sed "s/TON_IMEI/$$IMEI/g" /tmp/index.html > /dashboard-data/index.html
 
         echo "Init done!"
 
@@ -70,6 +65,8 @@ services:
     depends_on:
       init:
         condition: service_completed_successfully
+    ports:
+      - "9002:9001"
     volumes:
       - mosquitto-config:/mosquitto/config
       - mosquitto-data:/mosquitto/data
@@ -96,47 +93,39 @@ services:
       - silence-config:/config
     entrypoint: sh -c "cp /config/configuration.json /app/configuration.json && python silence-server.py"
 
-  nodered:
-    image: nodered/node-red:latest
-    container_name: nodered
+  dashboard:
+    image: nginx:alpine
+    container_name: silence-dashboard
     restart: unless-stopped
     depends_on:
       init:
         condition: service_completed_successfully
-      mosquitto:
-        condition: service_started
     ports:
-      - "1880:1880"
+      - "8083:80"
     volumes:
-      - nodered-data:/data
-    entrypoint: sh -c "cd /data && npm install 2>&1 | tail -3 && node-red --userDir /data"
+      - dashboard-data:/usr/share/nginx/html:ro
 
 volumes:
   mosquitto-config:
   mosquitto-data:
   silence-config:
-  nodered-data:
+  dashboard-data:
 ```
 
 ## Accès
 
 | Service | URL |
 |---|---|
-| Dashboard scooter | `http://<ip-serveur>:1880/ui` |
-| Éditeur Node-RED | `http://<ip-serveur>:1880` |
+| Dashboard scooter | `http://<ip-serveur>:8083` |
 
 ## Comportement au démarrage
 
-Au premier lancement, le service `init` télécharge automatiquement les fichiers de configuration depuis ce repo GitHub, injecte l'IMEI, et les écrit dans les volumes Docker. Les autres services attendent sa complétion avant de démarrer.
-
-Les flows Node-RED ne sont écrits **qu'au premier démarrage**. Toute personnalisation faite via l'éditeur Node-RED est préservée aux redémarrages suivants.
+Au premier lancement, le service `init` télécharge les fichiers de configuration depuis ce repo GitHub, injecte l'IMEI, et les écrit dans les volumes Docker. La page HTML est toujours régénérée depuis le template à chaque redémarrage — un changement d'IMEI dans la stack Portainer est donc pris en compte sans manipulation supplémentaire.
 
 ## Modifier la configuration
 
-Changer l'IMEI ou tout autre paramètre : modifier la variable d'environnement dans la stack Portainer et redéployer.
-
-Pour **réinitialiser les flows** Node-RED (effacer les personnalisations) : supprimer le volume `nodered-data` depuis Portainer avant de redéployer.
+Changer l'IMEI : modifier la variable d'environnement dans la stack Portainer et redéployer.
 
 ## Changer la DNS de redirection du scooter
 
-Le scooter doit pointer vers votre serveur sur le port 38955. La procédure dépend de votre routeur/DNS local — voir la documentation de [silence-private-server](https://github.com/lorenzo-deluca/silence-private-server) pour les détails.
+Le scooter doit pointer vers votre serveur sur le port 38955. Voir la documentation de [silence-private-server](https://github.com/lorenzo-deluca/silence-private-server) pour la procédure.

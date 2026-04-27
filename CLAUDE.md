@@ -2,92 +2,76 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Règles de developpement
+## Règles de développement
 
-* laisse toujours l'utilisateur réaliser les commits et les push
-* mets a jour Claude.md quand c'est nécessaire , il doit toujours refléter le code actuel
-* l'installation doit se faire uniquement via portainer (modif uniquement du docker-compose via stack)
+- Laisser toujours l'utilisateur réaliser les commits et les push
+- Mettre à jour CLAUDE.md quand c'est nécessaire — il doit toujours refléter le code actuel
+- L'installation se fait uniquement via Portainer (modification du docker-compose via stack)
 
 ## Project Overview
 
-Silence-Dashboard is a self-hosted Docker stack for managing a Silence S01 / SEAT MÓ electric scooter locally. It proxies the scooter's TCP connection through `silence-private-server`, publishes telemetry to Mosquitto via MQTT, and exposes a Node-RED dashboard on port 1880.
+Silence-Dashboard est une stack Docker auto-hébergée pour piloter un scooter Silence S01 / SEAT MÓ depuis un navigateur. La page HTML se connecte directement au broker MQTT via WebSocket — pas de middleware comme Node-RED.
 
-Upstream references:
-- Proxy server: https://github.com/lorenzo-deluca/silence-private-server
-- Home Assistant integration (sensors/entities reference): https://github.com/noiwid/silence-scooter-homeassistant
+Upstream : https://github.com/lorenzo-deluca/silence-private-server
 
 ## Architecture
 
 ```
-Scooter  ──TCP 38955──▶  silence-server  ──MQTT──▶  mosquitto  ──MQTT──▶  node-red  ──▶  browser :1880/ui
-                          (bridge mode:                                      (node-red-dashboard)
-                           also forwards to
-                           api.connectivity.silence.eco)
+Scooter ──TCP 38955──► silence-server ──MQTT 1883──► mosquitto ──WebSocket 9001/9002──► navigateur :8083
 ```
 
-**Service startup order** (enforced via `depends_on`):
-1. `init` — télécharge les fichiers de config depuis le repo GitHub public et les écrit dans les named volumes. Se termine avant que les autres services démarrent.
-2. `mosquitto` — broker MQTT, démarre après `init`.
-3. `silence-server` et `nodered` — démarrent après `init` + `mosquitto`.
+**Services :**
+- `init` (alpine) — télécharge les configs depuis le repo GitHub public et injecte l'IMEI via `sed`. S'exécute une seule fois avant les autres services.
+- `mosquitto` — broker MQTT, écoute sur 1883 (interne) et 9001 WebSocket (exposé sur 9002)
+- `silence-server` — proxy TCP/MQTT, attend que mosquitto soit healthy
+- `dashboard` (nginx:alpine) — sert `index.html` depuis le volume `dashboard-data`
 
-**Named volumes** (persistance) :
-- `mosquitto-config` — contient `mosquitto.conf` (réécrit à chaque démarrage par `init`)
+**Volumes :**
+- `mosquitto-config` — `mosquitto.conf` (toujours réécrit par init)
 - `mosquitto-data` — persistance MQTT
-- `silence-config` — contient `configuration.json` avec l'IMEI injecté (réécrit à chaque démarrage)
-- `nodered-data` — contient les flows Node-RED, les modules npm, et la config Node-RED runtime (flows.json réécrit uniquement au premier démarrage)
+- `silence-config` — `configuration.json` avec IMEI injecté (toujours réécrit par init)
+- `dashboard-data` — `index.html` généré depuis le template (toujours réécrit par init)
+
+## Fichiers clés
+
+| Fichier | Rôle |
+|---|---|
+| `docker-compose.yml` | Stack complète — seul fichier à coller dans Portainer |
+| `mosquitto/mosquitto.conf` | Listeners MQTT (1883) et WebSocket (9001) |
+| `silence/configuration.template.json` | Config silence-server, placeholder `TON_IMEI` |
+| `dashboard/index.template.html` | Interface HTML, placeholder `TON_IMEI` dans `var IMEI` |
 
 ## Configuration
 
-Le seul paramètre à fournir est l'**IMEI** du scooter.
+Seul paramètre requis : `IMEI` (variable d'environnement dans la stack Portainer).
 
-Via `.env` (développement local) :
-```
-cp .env.example .env
-# éditer .env et remplacer TON_IMEI par l'IMEI réel
-```
+Le placeholder `TON_IMEI` est substitué dans `configuration.json` et `index.html` à chaque démarrage de l'init container via `sed "s/TON_IMEI/$IMEI/g"`.
 
-Via Portainer (production) : ajouter `IMEI=<valeur>` dans les variables d'environnement de la stack.
+Note YAML : `$$IMEI` dans les blocs `command` du docker-compose est nécessaire — Compose interprète `$$` comme un `$` littéral passé au shell du conteneur.
 
-## Commandes Docker
+## Commandes utiles
 
 ```bash
-# Démarrer la stack
-docker compose up -d
+# Vérifier que init a réussi
+docker logs silenceserver-init-1
 
-# Voir les logs de l'init (vérifier que les fichiers sont bien téléchargés)
-docker compose logs init
+# Logs du serveur Silence
+docker logs -f silence-server
 
-# Voir les logs du serveur Silence
-docker compose logs -f silence-server
-
-# Forcer la réinitialisation des flows Node-RED (supprime les personnalisations)
-docker compose down -v && docker compose up -d
-
-# Redémarrer uniquement Node-RED (sans recréer les volumes)
-docker compose restart nodered
+# Forcer la régénération de tous les fichiers (ex: après changement IMEI)
+# → redéployer la stack dans Portainer (init tourne à chaque déploiement)
 ```
 
-## Mécanique du service `init`
+## Ports exposés
 
-Le service `init` (image `alpine`) télécharge les fichiers depuis les raw URLs du repo GitHub public avec `wget`, puis substitue le placeholder `TON_IMEI` par la valeur de `$IMEI` via `sed`.
-
-- `mosquitto.conf` → toujours re-téléchargé
-- `configuration.json` → toujours re-téléchargé et regénéré (IMEI injecté)
-- `package.json` → toujours re-téléchargé
-- `flows.json` → téléchargé **uniquement si absent** (préserve les personnalisations Node-RED)
-
-Dans le YAML docker-compose, `$$VAR` est nécessaire dans les blocs `command`/`entrypoint` pour qu'un `$` littéral parvienne au shell du conteneur (Compose interprète `$$` → `$`).
-
-## Modifier les flows Node-RED
-
-Deux approches :
-1. **Via l'UI Node-RED** (`http://<host>:1880`) — les modifications sont sauvegardées dans le volume `nodered-data`. Elles survivent aux redémarrages normaux.
-2. **Via `nodered/flows.template.json`** — modifier ce fichier dans le repo, puis forcer la réinitialisation du volume `nodered-data` (`docker compose down -v`).
+| Port | Service |
+|---|---|
+| 8083 | Dashboard HTML (nginx) |
+| 9002 | MQTT WebSocket (mosquitto) |
+| 38955 | TCP scooter (silence-server) |
 
 ## Topics MQTT
 
-Format : `home/silence-server/<IMEI>/status` (télémétrie) et `home/silence-server/<IMEI>/command/<CMD>` (commandes).
-
-Commandes disponibles : `TURN_ON_SCOOTER`, `TURN_OFF_SCOOTER`, `OPEN_SEAT`, `FLASH`, `BEEP_FLASH`.
-
-Le topic de souscription Node-RED utilise le wildcard `+` : `home/silence-server/+/status`.
+- Télémétrie : `home/silence-server/<IMEI>/status` (JSON)
+- Commandes : `home/silence-server/<IMEI>/command/<CMD>`
+- Commandes disponibles : `TURN_ON_SCOOTER`, `TURN_OFF_SCOOTER`, `OPEN_SEAT`, `FLASH`, `BEEP_FLASH`

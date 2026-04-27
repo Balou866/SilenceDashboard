@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Silence Scooter</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.0.5/mqtt.browser.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f0f0f;color:#fff;font-family:system-ui,sans-serif;min-height:100vh;padding:20px}
+  h1{text-align:center;color:#00d4aa;margin-bottom:24px;font-size:1.8em}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+  .card{background:#1a1a1a;border-radius:16px;padding:20px;text-align:center;border:1px solid #333}
+  .card .label{font-size:.75em;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+  .card .value{font-size:2em;font-weight:700;color:#00d4aa}
+  .card .unit{font-size:.8em;color:#666;margin-top:4px}
+  .battery-bar{background:#333;border-radius:8px;height:20px;margin:8px 0;overflow:hidden}
+  .battery-fill{height:100%;border-radius:8px;transition:width .5s,background .5s}
+  .status-dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:8px}
+  .cmds{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+  button{padding:14px;border:none;border-radius:12px;font-size:1em;font-weight:600;cursor:pointer;transition:opacity .2s}
+  button:hover{opacity:.8}
+  .btn-on{background:#2ecc71;color:#fff}
+  .btn-off{background:#e74c3c;color:#fff}
+  .btn-seat{background:#3498db;color:#fff}
+  .btn-flash{background:#f39c12;color:#fff}
+  .btn-beep{background:#9b59b6;color:#fff}
+  #conn{text-align:center;margin-bottom:16px;font-size:.85em}
+  .connected{color:#2ecc71}
+  .disconnected{color:#e74c3c}
+  .section-title{color:#888;font-size:.8em;text-transform:uppercase;letter-spacing:2px;margin:24px 0 12px}
+</style>
+</head>
+<body>
+<h1>🛵 Silence Scooter</h1>
+<div id="conn">
+  <span class="status-dot disconnected" id="dot"></span>
+  <span id="conntext" class="disconnected">Connexion...</span>
+</div>
+
+<div class="grid">
+  <div class="card"><div class="label">État</div><div class="value" id="status" style="font-size:1.2em">--</div></div>
+  <div class="card"><div class="label">Kilométrage</div><div class="value" id="odo">--</div><div class="unit">km</div></div>
+  <div class="card"><div class="label">Autonomie</div><div class="value" id="range">--</div><div class="unit">km</div></div>
+  <div class="card"><div class="label">Vitesse</div><div class="value" id="speed">--</div><div class="unit">km/h</div></div>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <div class="label">Batterie</div>
+  <div class="value" id="batsoc">--%</div>
+  <div class="battery-bar"><div class="battery-fill" id="batfill" style="width:0%"></div></div>
+  <div class="unit" id="batstate">--</div>
+</div>
+
+<div class="grid">
+  <div class="card"><div class="label">🌡 Moteur</div><div class="value" id="tmot">--</div><div class="unit">°C</div></div>
+  <div class="card"><div class="label">🌡 Onduleur</div><div class="value" id="tinv">--</div><div class="unit">°C</div></div>
+  <div class="card"><div class="label">🌡 Batterie</div><div class="value" id="tbat">--</div><div class="unit">°C</div></div>
+</div>
+
+<div class="section-title">Commandes</div>
+<div class="cmds">
+  <button class="btn-on"   onclick="cmd('TURN_ON_SCOOTER')">▶ Allumer</button>
+  <button class="btn-off"  onclick="cmd('TURN_OFF_SCOOTER')">⏹ Éteindre</button>
+  <button class="btn-seat" onclick="cmd('OPEN_SEAT')">🔓 Selle</button>
+  <button class="btn-flash"onclick="cmd('FLASH')">💡 Flash</button>
+  <button class="btn-beep" onclick="cmd('BEEP_FLASH')">📢 Beep+Flash</button>
+</div>
+
+<script>
+var IMEI = "TON_IMEI";
+var STATES = {0:'Éteint',1:'Veille',2:'Démarrage',3:'Prêt',4:'En route',5:'En charge'};
+var client = mqtt.connect('ws://' + window.location.hostname + ':9002');
+
+client.on('connect', function() {
+  document.getElementById('dot').className = 'status-dot connected';
+  document.getElementById('conntext').className = 'connected';
+  document.getElementById('conntext').textContent = 'Connecté';
+  client.subscribe('home/silence-server/+/status');
+});
+
+client.on('message', function(topic, msg) {
+  try {
+    var d = JSON.parse(msg.toString());
+    var soc = d.BatterySoC || 0;
+    document.getElementById('status').textContent  = STATES[d.status] || ('État ' + d.status);
+    document.getElementById('odo').textContent     = parseFloat(d.odo || 0).toFixed(1);
+    document.getElementById('range').textContent   = Math.round(d.range || 0);
+    document.getElementById('speed').textContent   = Math.round(d.velocity || 0);
+    document.getElementById('batsoc').textContent  = soc + '%';
+    document.getElementById('batfill').style.width = soc + '%';
+    document.getElementById('batfill').style.background = soc > 50 ? '#2ecc71' : soc > 20 ? '#f39c12' : '#e74c3c';
+    document.getElementById('batstate').textContent = d.charging ? 'En charge' : d.batteryOut ? 'Batterie sortie' : 'Normal';
+    document.getElementById('tmot').textContent    = d.motorTemperature || '--';
+    document.getElementById('tinv').textContent    = d.inverterTemperature || '--';
+    document.getElementById('tbat').textContent    = d.batteryTemperature || '--';
+  } catch(e) {}
+});
+
+function cmd(c) {
+  client.publish('home/silence-server/' + IMEI + '/command/' + c, '');
+}
+</script>
+</body>
+</html>
