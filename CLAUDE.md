@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Règles de developpement
+
+* laisse toujours l'utilisateur réaliser les commits et les push
+* mets a jour Claude.md quand c'est nécessaire , il doit toujours refléter le code actuel
+* l'installation doit se faire uniquement via portainer (modif uniquement du docker-compose via stack)
+
 ## Project Overview
 
 Silence-Dashboard is a self-hosted Docker stack for managing a Silence S01 / SEAT MÓ electric scooter locally. It proxies the scooter's TCP connection through `silence-private-server`, publishes telemetry to Mosquitto via MQTT, and exposes a Node-RED dashboard on port 1880.

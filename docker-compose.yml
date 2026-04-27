@@ -13,7 +13,7 @@ services:
       - -c
       - |
         set -e
-        RAW="https://raw.githubusercontent.com/Balou866/SilenceDashboard/main"
+        RAW="https://raw.githubusercontent.com/Balou866/SilenceDashboard/master"
 
         wget -qO /mosquitto-config/mosquitto.conf \
           "$$RAW/mosquitto/mosquitto.conf"
@@ -65,7 +65,7 @@ services:
     entrypoint: sh -c "cp /config/configuration.json /app/configuration.json && python silence-server.py"
 
   nodered:
-    image: nodered/node-red:3
+    image: nodered/node-red:latest
     container_name: nodered
     restart: unless-stopped
     depends_on:
