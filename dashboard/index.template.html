@@ -6,99 +6,504 @@
 <title>Silence Scooter</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.0.5/mqtt.browser.min.js"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#0f0f0f;color:#fff;font-family:system-ui,sans-serif;min-height:100vh;padding:20px}
-  h1{text-align:center;color:#00d4aa;margin-bottom:24px;font-size:1.8em}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
-  .card{background:#1a1a1a;border-radius:16px;padding:20px;text-align:center;border:1px solid #333}
-  .card .label{font-size:.75em;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
-  .card .value{font-size:2em;font-weight:700;color:#00d4aa}
-  .card .unit{font-size:.8em;color:#666;margin-top:4px}
-  .battery-bar{background:#333;border-radius:8px;height:20px;margin:8px 0;overflow:hidden}
-  .battery-fill{height:100%;border-radius:8px;transition:width .5s,background .5s}
-  .status-dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:8px}
-  .cmds{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
-  button{padding:14px;border:none;border-radius:12px;font-size:1em;font-weight:600;cursor:pointer;transition:opacity .2s}
-  button:hover{opacity:.8}
-  .btn-on{background:#2ecc71;color:#fff}
-  .btn-off{background:#e74c3c;color:#fff}
-  .btn-seat{background:#3498db;color:#fff}
-  .btn-flash{background:#f39c12;color:#fff}
-  .btn-beep{background:#9b59b6;color:#fff}
-  #conn{text-align:center;margin-bottom:16px;font-size:.85em}
-  .connected{color:#2ecc71}
-  .disconnected{color:#e74c3c}
-  .section-title{color:#888;font-size:.8em;text-transform:uppercase;letter-spacing:2px;margin:24px 0 12px}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f0f;--card:#1a1a1a;--border:#2a2a2a;--text:#fff;--muted:#888;
+  --green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--blue:#3498db;
+  --purple:#9b59b6;--teal:#00d4aa;
+}
+body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min-height:100vh;padding-bottom:80px}
+/* HEADER */
+header{background:#111;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+header h1{font-size:1.1em;color:var(--teal);font-weight:700}
+#conn-badge{display:flex;align-items:center;gap:6px;font-size:.8em}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--red);transition:background .3s}
+.dot.ok{background:var(--green)}
+/* STATUS BAR */
+#status-bar{background:#141414;padding:10px 20px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border);font-size:.9em;flex-wrap:wrap}
+#status-pill{padding:4px 14px;border-radius:20px;font-weight:700;font-size:.85em;background:#333;transition:background .3s}
+#status-pill.s0{background:#444}
+#status-pill.s2{background:#e67e22}
+#status-pill.s3{background:#27ae60}
+#status-pill.s4{background:#2980b9}
+#status-pill.s5{background:#8e44ad}
+#status-pill.s6{background:#c0392b}
+#speed-val{color:var(--teal);font-size:1.1em;font-weight:700}
+.status-alarm{padding:3px 10px;border-radius:12px;font-size:.75em;background:#2a0000;color:#ff6b6b;display:none}
+.status-alarm.on{display:inline-block}
+/* TABS */
+.tabs{display:flex;border-bottom:2px solid var(--border);background:#111;position:sticky;top:49px;z-index:9}
+.tab-btn{flex:1;padding:12px 8px;background:none;border:none;color:var(--muted);font-size:.85em;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .2s,border-color .2s}
+.tab-btn.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab{display:none;padding:16px}
+.tab.active{display:block}
+/* CARDS */
+.card{background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--border);margin-bottom:12px}
+.card-title{font-size:.7em;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+.stat-card{background:var(--card);border-radius:14px;padding:14px 16px;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;text-align:center}
+.stat-label{font-size:.68em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.stat-value{font-size:1.9em;font-weight:700;color:var(--teal);line-height:1}
+.stat-unit{font-size:.75em;color:#666;margin-top:4px}
+/* BATTERY */
+.bat-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.bat-pct{font-size:2.4em;font-weight:700;color:var(--teal)}
+.bat-info{text-align:right;font-size:.85em;color:var(--muted)}
+.bat-bar{background:#2a2a2a;border-radius:8px;height:22px;overflow:hidden;margin:8px 0}
+.bat-fill{height:100%;border-radius:8px;transition:width .6s,background .6s}
+.bat-state{font-size:.8em;color:var(--muted);text-align:center}
+/* TEMPS */
+.temp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.temp-card{background:#111;border-radius:10px;padding:12px;border:1px solid var(--border);text-align:center}
+.temp-label{font-size:.68em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.temp-value{font-size:1.5em;font-weight:700}
+.temp-cool{color:var(--green)}
+.temp-warm{color:var(--yellow)}
+.temp-hot{color:var(--red)}
+/* CELLS */
+.cells-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:8px}
+.cell{background:#111;border-radius:8px;padding:8px 4px;text-align:center;border:1px solid var(--border)}
+.cell-num{font-size:.6em;color:var(--muted)}
+.cell-v{font-size:.8em;font-weight:700;margin-top:2px}
+.cell-bar{height:4px;border-radius:2px;margin-top:4px;background:var(--green);transition:width .5s}
+.cell-ok{color:var(--green)}
+.cell-warn{color:var(--yellow)}
+.cell-bad{color:var(--red)}
+/* ENERGY */
+.energy-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.9em}
+.energy-row:last-child{border-bottom:none}
+.energy-label{color:var(--muted)}
+.energy-value{font-weight:600;color:var(--teal)}
+/* TRIP */
+.trip-stat{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.trip-stat:last-child{border-bottom:none}
+.trip-key{color:var(--muted);font-size:.85em}
+.trip-val{font-weight:700;color:var(--teal)}
+#trip-timer{font-size:2em;font-weight:700;color:var(--teal);text-align:center;margin:8px 0}
+/* ALARMS */
+.alarm-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.alarm-chip{padding:5px 12px;border-radius:20px;font-size:.75em;font-weight:600;background:var(--card);border:1px solid var(--border);color:var(--muted);transition:all .3s}
+.alarm-chip.active{background:#2a0000;border-color:#ff4444;color:#ff6b6b}
+/* COMMANDS */
+.cmd-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.cmd-grid .wide{grid-column:span 2}
+button{border:none;border-radius:12px;font-size:.95em;font-weight:700;cursor:pointer;padding:14px;transition:opacity .15s,transform .1s}
+button:active{transform:scale(.97);opacity:.85}
+.btn-on{background:var(--green);color:#fff}
+.btn-off{background:var(--red);color:#fff}
+.btn-seat{background:var(--blue);color:#fff}
+.btn-flash{background:var(--yellow);color:#fff}
+.btn-beep{background:var(--purple);color:#fff}
+/* GPS */
+#gps-link{display:block;padding:12px;background:#111;border:1px solid var(--border);border-radius:10px;color:var(--teal);text-align:center;text-decoration:none;font-size:.9em;margin-top:8px}
+#gps-link:hover{background:#1a1a1a}
+/* HEALTH */
+.health-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.health-row:last-child{border-bottom:none}
+.health-label{color:var(--muted);font-size:.85em}
+.health-value{font-weight:700;font-size:1.1em}
+/* SECTION TITLE */
+.section{margin-bottom:12px}
+h2{font-size:.75em;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin:16px 0 8px;padding-left:4px}
+/* OFFLINE OVERLAY */
+#offline{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+#offline.show{display:flex}
+#offline p{color:var(--muted);font-size:.9em}
+#offline strong{color:var(--red);font-size:1.2em}
 </style>
 </head>
 <body>
-<h1>🛵 Silence Scooter</h1>
-<div id="conn">
-  <span class="status-dot disconnected" id="dot"></span>
-  <span id="conntext" class="disconnected">Connexion...</span>
+
+<header>
+  <h1>🛵 Silence Scooter</h1>
+  <div id="conn-badge"><div class="dot" id="dot"></div><span id="conn-lbl">Connexion…</span></div>
+</header>
+
+<div id="status-bar">
+  <span id="status-pill" class="s0">Éteint</span>
+  <span id="speed-val">0 km/h</span>
+  <span class="status-alarm" id="alarm-mv">⚠ Mouvement</span>
+  <span class="status-alarm" id="alarm-fall">⚠ Chute</span>
+  <span class="status-alarm" id="alarm-speed">⚠ Sur-vitesse</span>
+  <span class="status-alarm" id="alarm-side">⚠ Béquille</span>
 </div>
 
-<div class="grid">
-  <div class="card"><div class="label">État</div><div class="value" id="status" style="font-size:1.2em">--</div></div>
-  <div class="card"><div class="label">Kilométrage</div><div class="value" id="odo">--</div><div class="unit">km</div></div>
-  <div class="card"><div class="label">Autonomie</div><div class="value" id="range">--</div><div class="unit">km</div></div>
-  <div class="card"><div class="label">Vitesse</div><div class="value" id="speed">--</div><div class="unit">km/h</div></div>
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('overview',this)">Aperçu</button>
+  <button class="tab-btn" onclick="showTab('details',this)">Détails</button>
+  <button class="tab-btn" onclick="showTab('trip',this)">Trajet</button>
 </div>
 
-<div class="card" style="margin-bottom:16px">
-  <div class="label">Batterie</div>
-  <div class="value" id="batsoc">--%</div>
-  <div class="battery-bar"><div class="battery-fill" id="batfill" style="width:0%"></div></div>
-  <div class="unit" id="batstate">--</div>
+<!-- ═══════════════ TAB APERÇU ═══════════════ -->
+<div id="tab-overview" class="tab active">
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Kilométrage</div>
+      <div class="stat-value" id="odo">--</div>
+      <div class="stat-unit">km</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Autonomie</div>
+      <div class="stat-value" id="range">--</div>
+      <div class="stat-unit">km estimés</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Batterie</div>
+    <div class="bat-row">
+      <div class="bat-pct" id="batsoc">--%</div>
+      <div class="bat-info">
+        <div id="bat-v">-- V</div>
+        <div id="bat-a">-- A</div>
+      </div>
+    </div>
+    <div class="bat-bar"><div class="bat-fill" id="bat-fill" style="width:0%"></div></div>
+    <div class="bat-state" id="bat-state">--</div>
+  </div>
+
+  <div class="alarm-grid">
+    <div class="alarm-chip" id="chip-mv">Mouvement</div>
+    <div class="alarm-chip" id="chip-fall">Chute</div>
+    <div class="alarm-chip" id="chip-speed">Sur-vitesse</div>
+    <div class="alarm-chip" id="chip-side">Béquille sortie</div>
+    <div class="alarm-chip" id="chip-bat">Batterie absente</div>
+  </div>
+
+  <h2>Commandes</h2>
+  <div class="cmd-grid">
+    <button class="btn-on"   onclick="cmd('TURN_ON_SCOOTER')">▶ Allumer</button>
+    <button class="btn-off"  onclick="cmd('TURN_OFF_SCOOTER')">⏹ Éteindre</button>
+    <button class="btn-seat wide" onclick="cmd('OPEN_SEAT')">🔓 Ouvrir la selle</button>
+    <button class="btn-flash"onclick="cmd('FLASH')">💡 Flash</button>
+    <button class="btn-beep" onclick="cmd('BEEP_FLASH')">📢 Beep + Flash</button>
+  </div>
 </div>
 
-<div class="grid">
-  <div class="card"><div class="label">🌡 Moteur</div><div class="value" id="tmot">--</div><div class="unit">°C</div></div>
-  <div class="card"><div class="label">🌡 Onduleur</div><div class="value" id="tinv">--</div><div class="unit">°C</div></div>
-  <div class="card"><div class="label">🌡 Batterie</div><div class="value" id="tbat">--</div><div class="unit">°C</div></div>
+<!-- ═══════════════ TAB DÉTAILS ═══════════════ -->
+<div id="tab-details" class="tab">
+
+  <h2>Températures</h2>
+  <div class="temp-grid">
+    <div class="temp-card"><div class="temp-label">🔧 Moteur</div><div class="temp-value temp-cool" id="t-mot">--°C</div></div>
+    <div class="temp-card"><div class="temp-label">⚡ Onduleur</div><div class="temp-value temp-cool" id="t-inv">--°C</div></div>
+    <div class="temp-card"><div class="temp-label">🔋 Bat. min</div><div class="temp-value temp-cool" id="t-bat-min">--°C</div></div>
+    <div class="temp-card"><div class="temp-label">🔋 Bat. max</div><div class="temp-value temp-cool" id="t-bat-max">--°C</div></div>
+  </div>
+
+  <h2>Santé batterie</h2>
+  <div class="card">
+    <div class="health-row"><span class="health-label">Cycles de charge estimés</span><span class="health-value" id="h-cycles">--</span></div>
+    <div class="health-row"><span class="health-label">Déséquilibre cellulaire</span><span class="health-value" id="h-imbalance">-- mV</span></div>
+    <div class="health-row"><span class="health-label">Consommation</span><span class="health-value" id="h-cons">-- %/km</span></div>
+  </div>
+
+  <h2>Cellules (14S)</h2>
+  <div class="card" style="padding:12px">
+    <div class="cells-grid" id="cells-grid">
+      <!-- generated by JS -->
+    </div>
+  </div>
+
+  <h2>Énergie cumulée</h2>
+  <div class="card">
+    <div class="energy-row"><span class="energy-label">⚡ Chargé</span><span class="energy-value" id="e-charged">-- kWh</span></div>
+    <div class="energy-row"><span class="energy-label">🔻 Déchargé</span><span class="energy-value" id="e-discharged">-- kWh</span></div>
+    <div class="energy-row"><span class="energy-label">♻️ Régénéré</span><span class="energy-value" id="e-regen">-- kWh</span></div>
+  </div>
+
+  <h2>Localisation</h2>
+  <div class="card" style="padding:12px">
+    <div style="font-size:.85em;color:var(--muted);margin-bottom:6px">
+      <span id="gps-coords">En attente de données GPS…</span>
+    </div>
+    <a id="gps-link" href="#" target="_blank" style="display:none">📍 Ouvrir dans Google Maps</a>
+  </div>
 </div>
 
-<div class="section-title">Commandes</div>
-<div class="cmds">
-  <button class="btn-on"   onclick="cmd('TURN_ON_SCOOTER')">▶ Allumer</button>
-  <button class="btn-off"  onclick="cmd('TURN_OFF_SCOOTER')">⏹ Éteindre</button>
-  <button class="btn-seat" onclick="cmd('OPEN_SEAT')">🔓 Selle</button>
-  <button class="btn-flash"onclick="cmd('FLASH')">💡 Flash</button>
-  <button class="btn-beep" onclick="cmd('BEEP_FLASH')">📢 Beep+Flash</button>
+<!-- ═══════════════ TAB TRAJET ═══════════════ -->
+<div id="tab-trip" class="tab">
+
+  <div class="card" id="trip-current-card">
+    <div class="card-title" id="trip-title">Trajet en cours</div>
+    <div id="trip-timer">00:00</div>
+    <div class="trip-stat"><span class="trip-key">Distance</span><span class="trip-val" id="tr-dist">-- km</span></div>
+    <div class="trip-stat"><span class="trip-key">Batterie consommée</span><span class="trip-val" id="tr-bat">-- %</span></div>
+    <div class="trip-stat"><span class="trip-key">Vitesse max</span><span class="trip-val" id="tr-vmax">-- km/h</span></div>
+    <div class="trip-stat"><span class="trip-key">Vitesse moy.</span><span class="trip-val" id="tr-vavg">-- km/h</span></div>
+  </div>
+
+  <h2>Dernier trajet enregistré</h2>
+  <div class="card" id="last-trip-card">
+    <div id="last-trip-empty" style="color:var(--muted);font-size:.85em;text-align:center;padding:8px">Aucun trajet enregistré</div>
+    <div id="last-trip-data" style="display:none">
+      <div class="trip-stat"><span class="trip-key">Date</span><span class="trip-val" id="lt-date">--</span></div>
+      <div class="trip-stat"><span class="trip-key">Durée</span><span class="trip-val" id="lt-dur">--</span></div>
+      <div class="trip-stat"><span class="trip-key">Distance</span><span class="trip-val" id="lt-dist">--</span></div>
+      <div class="trip-stat"><span class="trip-key">Batterie consommée</span><span class="trip-val" id="lt-bat">--</span></div>
+      <div class="trip-stat"><span class="trip-key">Vitesse max</span><span class="trip-val" id="lt-vmax">--</span></div>
+      <div class="trip-stat"><span class="trip-key">Vitesse moy.</span><span class="trip-val" id="lt-vavg">--</span></div>
+    </div>
+  </div>
 </div>
+
+<div id="offline"><strong>⚠ Déconnecté du broker MQTT</strong><p>Reconnexion en cours…</p></div>
 
 <script>
+// ─── CONFIG ────────────────────────────────────────────────
 var IMEI = "TON_IMEI";
-var STATES = {0:'Éteint',1:'Veille',2:'Démarrage',3:'Prêt',4:'En route',5:'En charge'};
-var client = mqtt.connect('ws://' + window.location.hostname + ':9002');
+var WS_PORT = 9002;
+var MQTT_TOPIC = 'home/silence-server/+/status';
+var CMD_TOPIC  = 'home/silence-server/' + IMEI + '/command/';
+
+var STATUS_LABELS = {0:'Éteint',1:'Veille',2:'Démarrage',3:'Prêt',4:'En route',5:'En charge',6:'Sans batterie'};
+var STATUS_CLASS  = {0:'s0',1:'s0',2:'s2',3:'s3',4:'s4',5:'s5',6:'s6'};
+var BAT_CAP_KWH   = 5.6;
+
+// ─── MQTT ──────────────────────────────────────────────────
+var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
+var lastData = {};
 
 client.on('connect', function() {
-  document.getElementById('dot').className = 'status-dot connected';
-  document.getElementById('conntext').className = 'connected';
-  document.getElementById('conntext').textContent = 'Connecté';
-  client.subscribe('home/silence-server/+/status');
+  setConn(true);
+  client.subscribe(MQTT_TOPIC);
 });
-
+client.on('offline',    function(){ setConn(false); });
+client.on('disconnect', function(){ setConn(false); });
 client.on('message', function(topic, msg) {
-  try {
-    var d = JSON.parse(msg.toString());
-    var soc = d.BatterySoC || 0;
-    document.getElementById('status').textContent  = STATES[d.status] || ('État ' + d.status);
-    document.getElementById('odo').textContent     = parseFloat(d.odo || 0).toFixed(1);
-    document.getElementById('range').textContent   = Math.round(d.range || 0);
-    document.getElementById('speed').textContent   = Math.round(d.velocity || 0);
-    document.getElementById('batsoc').textContent  = soc + '%';
-    document.getElementById('batfill').style.width = soc + '%';
-    document.getElementById('batfill').style.background = soc > 50 ? '#2ecc71' : soc > 20 ? '#f39c12' : '#e74c3c';
-    document.getElementById('batstate').textContent = d.charging ? 'En charge' : d.batteryOut ? 'Batterie sortie' : 'Normal';
-    document.getElementById('tmot').textContent    = d.motorTemperature || '--';
-    document.getElementById('tinv').textContent    = d.inverterTemperature || '--';
-    document.getElementById('tbat').textContent    = d.batteryTemperature || '--';
-  } catch(e) {}
+  try { update(JSON.parse(msg.toString())); } catch(e) {}
 });
 
-function cmd(c) {
-  client.publish('home/silence-server/' + IMEI + '/command/' + c, '');
+function setConn(ok) {
+  document.getElementById('dot').className = 'dot' + (ok ? ' ok' : '');
+  document.getElementById('conn-lbl').textContent = ok ? 'Connecté' : 'Déconnecté';
+  document.getElementById('offline').className = ok ? '' : 'show';
+}
+
+function cmd(c) { client.publish(CMD_TOPIC + c, ''); }
+
+// ─── UPDATE ────────────────────────────────────────────────
+function update(d) {
+  lastData = d;
+
+  // Champs avec noms alternatifs selon version silence-server
+  var soc      = val(d.BatterySoC,     d.SOCbatteria,   0);
+  var voltage  = val(d.VOLTbatteria,   d.voltage,        0);
+  var current  = val(d.batteryCurrent, d.current,        0);
+  var speed    = val(d.velocity,       d.speed,          0);
+  var motT     = val(d.motorTemperature,   d.motorTemp,    null);
+  var invT     = val(d.inverterTemperature,d.inverterTemp, null);
+  var batTMin  = val(d.BatteryTempMin, d.batteryTemperature, null);
+  var batTMax  = val(d.BatteryTempMax, null, null);
+  var status   = d.status != null ? d.status : -1;
+
+  // ── Status bar
+  var pill = document.getElementById('status-pill');
+  pill.textContent = STATUS_LABELS[status] || ('État ' + status);
+  pill.className   = 'status-pill ' + (STATUS_CLASS[status] || 's0');
+  document.getElementById('speed-val').textContent = Math.round(speed) + ' km/h';
+
+  // ── Alarmes
+  setAlarm('alarm-mv',    'chip-mv',    d.movementAlarm);
+  setAlarm('alarm-fall',  'chip-fall',  d.bikefall);
+  setAlarm('alarm-speed', 'chip-speed', d.overspeedAlarm);
+  setAlarm('alarm-side',  'chip-side',  d.sidestandOut);
+  setChip('chip-bat', !(d.batteryIn == null || d.batteryIn == 1));
+
+  // ── Aperçu
+  setText('odo',   d.odo != null ? parseFloat(d.odo).toFixed(1) : '--');
+  setText('range', d.range != null ? Math.round(d.range) : '--');
+
+  // Batterie
+  var socPct = Math.round(soc);
+  setText('batsoc', socPct + '%');
+  setText('bat-v',  voltage ? voltage.toFixed(1) + ' V' : '-- V');
+  setText('bat-a',  current ? current.toFixed(1) + ' A' : '-- A');
+  var fill = document.getElementById('bat-fill');
+  fill.style.width = socPct + '%';
+  fill.style.background = socPct > 50 ? '#2ecc71' : socPct > 20 ? '#f39c12' : '#e74c3c';
+  setText('bat-state', d.charging ? '⚡ En charge' : (d.batteryOut ? '🔓 Batterie retirée' : '✓ Normal'));
+
+  // ── Températures
+  setTemp('t-mot',     motT,    85);
+  setTemp('t-inv',     invT,    85);
+  setTemp('t-bat-min', batTMin, 45);
+  setTemp('t-bat-max', batTMax, 45);
+
+  // ── Cellules
+  var cells = [];
+  for (var i = 1; i <= 14; i++) {
+    var mv = d['Cell' + i + 'Voltage'];
+    cells.push(mv != null ? mv / 1000 : null);
+  }
+  renderCells(cells);
+
+  // ── Santé
+  var charged  = d.chargedEnergy || 0;
+  var disch    = d.DischargedEnergy || 0;
+  var regen    = d.RegeneratedEnergy || 0;
+  var odo      = parseFloat(d.odo) || 0;
+  if (charged > 0) setText('h-cycles', (charged / BAT_CAP_KWH).toFixed(1));
+  var validCells = cells.filter(function(v){ return v != null; });
+  if (validCells.length === 14) {
+    var imb = (Math.max.apply(null,validCells) - Math.min.apply(null,validCells)) * 1000;
+    setText('h-imbalance', imb.toFixed(0) + ' mV');
+  }
+  var net = disch - regen;
+  if (net > 0 && odo > 0) setText('h-cons', (net / BAT_CAP_KWH * 100 / odo).toFixed(2) + ' %/km');
+
+  // ── Énergie
+  setText('e-charged',    charged  ? charged.toFixed(2)  + ' kWh' : '-- kWh');
+  setText('e-discharged', disch    ? disch.toFixed(2)    + ' kWh' : '-- kWh');
+  setText('e-regen',      regen    ? regen.toFixed(2)    + ' kWh' : '-- kWh');
+
+  // ── GPS
+  if (d.latitude && d.longitude) {
+    var lat = parseFloat(d.latitude), lon = parseFloat(d.longitude);
+    setText('gps-coords', lat.toFixed(6) + ', ' + lon.toFixed(6));
+    var link = document.getElementById('gps-link');
+    link.href = 'https://www.google.com/maps?q=' + lat + ',' + lon;
+    link.style.display = 'block';
+  }
+
+  // ── Trajet
+  trackTrip(d, speed, soc);
+}
+
+// ─── CELLULES ──────────────────────────────────────────────
+function renderCells(cells) {
+  var grid = document.getElementById('cells-grid');
+  if (!grid.hasChildNodes()) {
+    for (var i = 0; i < 14; i++) {
+      var el = document.createElement('div');
+      el.className = 'cell';
+      el.id = 'cell-' + i;
+      el.innerHTML = '<div class="cell-num">C'+(i+1)+'</div><div class="cell-v" id="cv-'+i+'">--</div><div class="cell-bar" id="cb-'+i+'" style="width:100%"></div>';
+      grid.appendChild(el);
+    }
+  }
+  var validCells = cells.filter(function(v){ return v != null; });
+  var minV = validCells.length ? Math.min.apply(null,validCells) : 3.5;
+  var maxV = validCells.length ? Math.max.apply(null,validCells) : 4.2;
+  cells.forEach(function(v, i) {
+    var el = document.getElementById('cv-' + i);
+    var bar = document.getElementById('cb-' + i);
+    if (!el) return;
+    if (v == null) { el.textContent = '--'; return; }
+    el.textContent = v.toFixed(3);
+    var pct = maxV > minV ? ((v - minV) / (maxV - minV) * 60 + 40) : 100;
+    bar.style.width = pct + '%';
+    el.className = 'cell-v ' + (v >= 3.6 ? 'cell-ok' : v >= 3.3 ? 'cell-warn' : 'cell-bad');
+    bar.style.background = v >= 3.6 ? 'var(--green)' : v >= 3.3 ? 'var(--yellow)' : 'var(--red)';
+  });
+}
+
+// ─── SUIVI DE TRAJET ───────────────────────────────────────
+var trip = null;
+var tripTimer = null;
+var tripSpeeds = [];
+
+function trackTrip(d, speed, soc) {
+  var moving = d.status === 4;
+
+  if (moving && !trip) {
+    // Démarrage du trajet
+    trip = {
+      startTime: Date.now(),
+      startOdo:  parseFloat(d.odo) || 0,
+      startSoc:  soc,
+      maxSpeed:  speed
+    };
+    tripSpeeds = [speed];
+    if (tripTimer) clearInterval(tripTimer);
+    tripTimer = setInterval(updateTripTimer, 1000);
+    document.getElementById('trip-title').textContent = '🟢 Trajet en cours';
+  } else if (!moving && trip) {
+    // Fin du trajet
+    var endOdo = parseFloat(d.odo) || trip.startOdo;
+    var last = {
+      date:  new Date(trip.startTime).toLocaleString('fr-FR'),
+      dur:   Math.round((Date.now() - trip.startTime) / 60000),
+      dist:  (endOdo - trip.startOdo).toFixed(1),
+      bat:   (trip.startSoc - soc).toFixed(1),
+      vmax:  Math.round(trip.maxSpeed),
+      vavg:  Math.round(tripSpeeds.reduce(function(a,b){return a+b},0) / tripSpeeds.length)
+    };
+    localStorage.setItem('lastTrip', JSON.stringify(last));
+    renderLastTrip(last);
+    trip = null;
+    clearInterval(tripTimer);
+    document.getElementById('trip-title').textContent = 'Dernier trajet';
+    document.getElementById('trip-timer').textContent = '00:00';
+  }
+
+  if (trip) {
+    if (speed > trip.maxSpeed) trip.maxSpeed = speed;
+    tripSpeeds.push(speed);
+    var dist = (parseFloat(d.odo) || trip.startOdo) - trip.startOdo;
+    setText('tr-dist', dist.toFixed(1) + ' km');
+    setText('tr-bat',  (trip.startSoc - soc).toFixed(1) + ' %');
+    setText('tr-vmax', Math.round(trip.maxSpeed) + ' km/h');
+    var avg = tripSpeeds.reduce(function(a,b){return a+b},0) / tripSpeeds.length;
+    setText('tr-vavg', Math.round(avg) + ' km/h');
+  }
+
+  // Charger dernier trajet depuis localStorage
+  if (!trip) {
+    try {
+      var saved = JSON.parse(localStorage.getItem('lastTrip'));
+      if (saved) renderLastTrip(saved);
+    } catch(e){}
+  }
+}
+
+function updateTripTimer() {
+  if (!trip) return;
+  var s = Math.round((Date.now() - trip.startTime) / 1000);
+  var m = Math.floor(s / 60); s = s % 60;
+  document.getElementById('trip-timer').textContent = pad(m) + ':' + pad(s);
+}
+
+function renderLastTrip(t) {
+  document.getElementById('last-trip-empty').style.display = 'none';
+  document.getElementById('last-trip-data').style.display  = 'block';
+  setText('lt-date', t.date);
+  setText('lt-dur',  t.dur + ' min');
+  setText('lt-dist', t.dist + ' km');
+  setText('lt-bat',  t.bat + ' %');
+  setText('lt-vmax', t.vmax + ' km/h');
+  setText('lt-vavg', t.vavg + ' km/h');
+}
+
+// ─── HELPERS ───────────────────────────────────────────────
+function val(){for(var i=0;i<arguments.length;i++){if(arguments[i]!=null)return arguments[i];}return null;}
+function setText(id, v){ var el=document.getElementById(id); if(el) el.textContent=v; }
+function pad(n){ return n<10?'0'+n:n; }
+
+function setAlarm(barId, chipId, active) {
+  document.getElementById(barId).className = 'status-alarm' + (active ? ' on' : '');
+  setChip(chipId, active);
+}
+function setChip(id, active) {
+  var el = document.getElementById(id);
+  if (el) el.className = 'alarm-chip' + (active ? ' active' : '');
+}
+
+function setTemp(id, v, warn) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (v == null) { el.textContent = '--°C'; el.className = 'temp-value temp-cool'; return; }
+  el.textContent = Math.round(v) + '°C';
+  el.className = 'temp-value ' + (v >= warn ? 'temp-hot' : v >= warn * 0.75 ? 'temp-warm' : 'temp-cool');
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
 }
 </script>
 </body>

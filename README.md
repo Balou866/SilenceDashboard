@@ -2,7 +2,7 @@
 
 Tableau de bord local pour scooter électrique **Silence S01 / SEAT MÓ**, déployable en une stack Portainer.
 
-Basé sur [silence-private-server](https://github.com/lorenzo-deluca/silence-private-server) de lorenzo-deluca.
+Basé sur [silence-private-server](https://github.com/lorenzo-deluca/silence-private-server) de lorenzo-deluca pour le serveur TCP/MQTT, et sur le travail de [noiwid](https://github.com/noiwid/silence-scooter-homeassistant) pour la définition des données et l'inspiration du dashboard.
 
 ## Architecture
 
