@@ -21,6 +21,7 @@ header{background:var(--blue);height:48px;display:flex;align-items:center;paddin
 #hdr-conn{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:.78em;font-weight:400;opacity:.85}
 .hdot{width:8px;height:8px;border-radius:50%;background:var(--red);transition:background .3s}
 .hdot.ok{background:var(--green)}
+#vin-lbl{font-size:.65em;font-weight:400;opacity:.45;margin-left:10px;letter-spacing:.3px}
 
 /* ── MAIN GRID ── */
 main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;gap:14px;padding:14px;align-items:start}
@@ -98,7 +99,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 .bat-extra-val{font-weight:600;color:var(--text)}
 
 /* Range / cons / regen row */
-.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .s3cell{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
 .s3val{font-size:1.25em;font-weight:700;color:var(--teal)}
 .s3label{font-size:.62em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
@@ -173,12 +174,13 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 #det-toggle.open::before{transform:rotate(90deg)}
 #det-section{display:none}
 #det-section.open{display:block}
+
 </style>
 </head>
 <body>
 
 <header>
-  🛵 Silence Scooter
+  🛵 Silence Scooter<span id="vin-lbl"></span>
   <div id="hdr-conn"><div class="hdot" id="hdot"></div><span id="hlbl">Connexion…</span></div>
 </header>
 
@@ -213,11 +215,13 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
   <div class="scooter-area">
     <div class="scooter-emoji">🛵</div>
     <div class="scooter-status-pill s0" id="st-pill">Éteint</div>
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <span class="alarm-dot" id="ad-mv" title="Mouvement"></span>
-      <span class="alarm-dot" id="ad-fall" title="Chute"></span>
-      <span class="alarm-dot" id="ad-speed" title="Sur-vitesse"></span>
-      <span class="alarm-dot" id="ad-side" title="Béquille"></span>
+    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;justify-content:center">
+      <span class="alarm-dot" id="ad-mv"       title="Mouvement"></span>
+      <span class="alarm-dot" id="ad-fall"      title="Chute"></span>
+      <span class="alarm-dot" id="ad-speed"     title="Sur-vitesse"></span>
+      <span class="alarm-dot" id="ad-side"      title="Béquille sortie"></span>
+      <span class="alarm-dot" id="ad-sidedown"  title="Béquille abaissée"></span>
+      <span class="alarm-dot" id="ad-warn"      title="Témoins avertissement"></span>
     </div>
   </div>
 
@@ -254,16 +258,24 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
       <div><div class="bh-val" id="bh-dev">--</div><div class="bh-label">Dév. SOC</div></div>
       <div><div class="bh-val" id="bh-v">--</div><div class="bh-label">Tension V</div></div>
     </div>
+    <div style="margin-top:8px" class="bat-extra-row">
+      <span class="bat-extra-label">Flags BMS</span>
+      <span class="bat-extra-val" id="bh-flags">--</span>
+    </div>
     <div style="margin-top:10px">
       <button id="det-toggle" onclick="toggleDetails()">Diagnostics détaillés</button>
     </div>
     <div id="det-section">
       <hr class="sep">
       <div class="card-title" style="margin-top:4px">Températures</div>
+      <div class="temp-row"><span class="temp-name">🌡 Ambiance</span><span class="temp-val tc" id="dt-amb">--°C</span></div>
       <div class="temp-row"><span class="temp-name">🌡 Moteur</span><span class="temp-val tc" id="dt-mot">--°C</span></div>
       <div class="temp-row"><span class="temp-name">⚡ Onduleur</span><span class="temp-val tc" id="dt-inv">--°C</span></div>
       <div class="temp-row"><span class="temp-name">🔋 Bat. min</span><span class="temp-val tc" id="dt-bmin">--°C</span></div>
       <div class="temp-row"><span class="temp-name">🔋 Bat. max</span><span class="temp-val tc" id="dt-bmax">--°C</span></div>
+      <div class="temp-row"><span class="temp-name">🔋 NTC 1</span><span class="temp-val tc" id="dt-ntc1">--°C</span></div>
+      <div class="temp-row"><span class="temp-name">🔋 NTC 2</span><span class="temp-val tc" id="dt-ntc2">--°C</span></div>
+      <div class="temp-row"><span class="temp-name">🔋 NTC 3</span><span class="temp-val tc" id="dt-ntc3">--°C</span></div>
       <hr class="sep">
       <div class="card-title">Énergie cumulée</div>
       <div class="temp-row"><span class="temp-name">⚡ Chargé</span><span class="temp-val" id="dt-chr" style="color:var(--text)">-- kWh</span></div>
@@ -293,11 +305,9 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
               <stop offset="100%" stop-color="#4caf50"/>
             </linearGradient>
           </defs>
-          <!-- Background arc -->
           <circle cx="80" cy="80" r="62" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"
                   stroke-dasharray="292 390" stroke-linecap="round"
                   transform="rotate(135 80 80)"/>
-          <!-- Filled arc -->
           <circle cx="80" cy="80" r="62" fill="none" stroke="url(#gGrad)" stroke-width="10"
                   stroke-dasharray="0 390" stroke-linecap="round"
                   transform="rotate(135 80 80)" id="gauge-arc"/>
@@ -312,15 +322,35 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
         <div class="bat-extras">
           <div class="bat-extra-row"><span class="bat-extra-label">Tension</span><span class="bat-extra-val" id="g-v">-- V</span></div>
           <div class="bat-extra-row"><span class="bat-extra-label">Courant</span><span class="bat-extra-val" id="g-a">-- A</span></div>
+          <div class="bat-extra-row"><span class="bat-extra-label">Courant BMS</span><span class="bat-extra-val" id="g-bmsa">-- A</span></div>
+          <div class="bat-extra-row"><span class="bat-extra-label">SOC Astra</span><span class="bat-extra-val" id="g-astra">--%</span></div>
           <div class="bat-extra-row"><span class="bat-extra-label">État</span><span class="bat-extra-val" id="g-state">--</span></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Range / Cons / Regen -->
-  <div class="stats3">
+  <!-- Motor -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      Moteur
+    </div>
+    <div class="stats4" style="grid-template-columns:repeat(3,1fr)">
+      <div class="s3cell"><div class="s3val" id="mot-rpm">--</div><div class="s3label">RPM</div></div>
+      <div class="s3cell"><div class="s3val" id="mot-pwr">--</div><div class="s3label">kW</div></div>
+      <div class="s3cell"><div class="s3val" id="mot-bus">--</div><div class="s3label">Bus V</div></div>
+    </div>
+    <div class="stats4" style="grid-template-columns:repeat(2,1fr);margin-top:8px">
+      <div class="s3cell"><div class="s3val" id="mot-mode">--</div><div class="s3label">Mode</div></div>
+      <div class="s3cell"><div class="s3val" id="mot-ready">--</div><div class="s3label">Prêt</div></div>
+    </div>
+  </div>
+
+  <!-- Range / Cons / Regen / RangeByMode -->
+  <div class="stats4">
     <div class="s3cell"><div class="s3val" id="m-range">--</div><div class="s3label">Autonomie km</div></div>
+    <div class="s3cell"><div class="s3val" id="m-rangemode">--</div><div class="s3label">Auton./mode</div></div>
     <div class="s3cell"><div class="s3val" id="m-cons">--</div><div class="s3label">Cons. %/km</div></div>
     <div class="s3cell"><div class="s3val" id="m-regen">--</div><div class="s3label">Regen. %</div></div>
   </div>
@@ -421,6 +451,8 @@ var WS_PORT   = 9002;
 var TARIFF    = 0.215;   // €/kWh
 var BAT_CAP   = 5.6;     // kWh
 
+var DRIVE_MODES = {0:'Eco', 1:'City', 2:'Sport'};
+
 // ─── MQTT ────────────────────────────────────────────────────
 var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
 var lastData = {}, lastMsgTime = null;
@@ -447,19 +479,25 @@ function cmd(c){ client.publish('home/silence-server/'+IMEI+'/command/'+c, ''); 
 // ─── UPDATE ──────────────────────────────────────────────────
 function update(d){
   lastData = d;
-  var soc     = d.BatterySoC    ?? d.SOCbatteria      ?? 0;
-  var voltage = d.VOLTbatteria  ?? d.voltage           ?? 0;
-  var current = d.batteryCurrent?? d.current           ?? 0;
-  var speed   = d.velocity      ?? d.speed             ?? 0;
-  var motT    = d.motorTemperature    ?? d.motorTemp    ?? null;
-  var invT    = d.inverterTemperature ?? d.inverterTemp ?? null;
-  var batTMin = d.BatteryTempMin ?? d.batteryTemperature ?? null;
-  var batTMax = d.BatteryTempMax ?? null;
-  var status  = d.status ?? -1;
-  var odo     = parseFloat(d.odo) || 0;
-  var charged = d.chargedEnergy || 0;
-  var disch   = d.DischargedEnergy || 0;
-  var regen   = d.RegeneratedEnergy || 0;
+
+  var soc     = d.SOCbatteria    ?? d.BatterySoC ?? 0;
+  var voltage = d.VOLTbatteria   ?? 0;
+  var current = d.batteryCurrent ?? 0;
+  var speed   = d.speed          ?? 0;
+  var status      = d.status ?? -1;
+  var odo         = parseFloat(d.odo) || 0;
+  var charged     = d.chargedEnergy    || 0;
+  var disch       = d.DischargedEnergy || 0;
+  var regen       = d.RegeneratedEnergy || 0;
+  var motorRPM    = d.motorRPM    ?? null;
+  var motorPower  = d.motorPower  ?? null;
+  var busVoltage  = d.busVoltage  ?? null;
+  var driveMode   = d.driveMode   ?? null;
+  var driveReady  = d.driveReady  ?? null;
+  var rangeByMode = d.rangeByMode ?? null;
+  var vin         = d.VIN         ?? null;
+
+  if(vin) txt('vin-lbl', 'VIN: '+vin);
 
   // ── Status pill
   var STATUS = {0:'Éteint',1:'Veille',2:'Démarrage',3:'Prêt',4:'En route',5:'En charge',6:'Sans batterie'};
@@ -469,10 +507,12 @@ function update(d){
   pill.className   = 'scooter-status-pill ' + (SCLS[status]||'s0');
 
   // ── Alarms
-  setAlarmDot('ad-mv',    d.movementAlarm);
-  setAlarmDot('ad-fall',  d.bikefall);
-  setAlarmDot('ad-speed', d.overspeedAlarm);
-  setAlarmDot('ad-side',  d.sidestandOut);
+  setAlarmDot('ad-mv',       d.movementAlarm);
+  setAlarmDot('ad-fall',     d.bikefall);
+  setAlarmDot('ad-speed',    d.overspeedAlarm);
+  setAlarmDot('ad-side',     d.sidestandOut);
+  setAlarmDot('ad-sidedown', d.sidestandDown);
+  setAlarmDot('ad-warn',     d.warningLights);
 
   // ── Status row (left)
   txt('s-bat',   Math.round(soc)+'%');
@@ -480,8 +520,16 @@ function update(d){
   txt('s-odo',   odo.toFixed(0));
   txt('s-batst', d.batteryIn===0 ? 'Absente' : d.charging ? 'Charge' : 'OK');
 
+  // ── Motor card
+  txt('mot-rpm',   motorRPM   != null ? Math.round(motorRPM)      : '--');
+  txt('mot-pwr',   motorPower != null ? motorPower.toFixed(1)      : '--');
+  txt('mot-bus',   busVoltage != null ? busVoltage.toFixed(1)+' V' : '--');
+  txt('mot-mode',  driveMode  != null ? (DRIVE_MODES[driveMode] ?? 'Mode '+driveMode) : '--');
+  txt('mot-ready', driveReady != null ? (driveReady ? '✓' : '✗')  : '--');
+
   // ── Range / cons / regen
-  txt('m-range', d.range != null ? Math.round(d.range) : '--');
+  txt('m-range',    d.range     != null ? Math.round(d.range)     : '--');
+  txt('m-rangemode', rangeByMode != null ? Math.round(rangeByMode) : '--');
   var net = disch - regen;
   var consPkm = (net > 0 && odo > 0) ? (net/BAT_CAP*100/odo) : null;
   txt('m-cons', consPkm ? consPkm.toFixed(2) : '--');
@@ -496,7 +544,7 @@ function update(d){
     txt('u-base', totalDist.toFixed(0)+' km');
   }
 
-  updateBatteryUI(d, soc, voltage, current, charged, disch, regen, motT, invT, batTMin, batTMax);
+  updateBatteryUI(d, soc, voltage, current, charged, disch, regen);
   updateCosts(consPkm, odo);
   updateGPS(d);
 
@@ -504,18 +552,25 @@ function update(d){
   renderTripsTable();
 }
 
-function updateBatteryUI(d, soc, voltage, current, charged, disch, regen, motT, invT, batTMin, batTMax){
-  var arc = document.getElementById('gauge-arc');
+function updateBatteryUI(d, soc, voltage, current, charged, disch, regen){
+  var bmsCurrent  = d.bmsCurrent      ?? null;
+  var astraSOC    = d.astraBatterySOC ?? null;
+  var bmsFlags    = d.bmsFlags        ?? null;
+
+  var arc = $('gauge-arc');
   var circ = 2*Math.PI*62, arcTotal = circ*270/360;
   arc.setAttribute('stroke-dasharray', ((soc/100)*arcTotal).toFixed(1)+' '+circ.toFixed(1));
   txt('g-pct',   Math.round(soc)+'%');
-  txt('g-v',     voltage ? voltage.toFixed(1)+' V' : '-- V');
-  txt('g-a',     current ? current.toFixed(1)+' A' : '-- A');
+  txt('g-v',     voltage    ? voltage.toFixed(1)+' V' : '-- V');
+  txt('g-a',     current    ? current.toFixed(1)+' A' : '-- A');
+  txt('g-bmsa',  bmsCurrent != null ? bmsCurrent.toFixed(1)+' A' : '-- A');
+  txt('g-astra', astraSOC   != null ? Math.round(astraSOC)+'%'   : '--%');
   txt('g-state', d.charging ? '⚡ Charge' : (d.batteryOut ? '🔓 Retirée' : '✓ Normal'));
 
   txt('bh-v', voltage ? voltage.toFixed(0) : '--');
   if(charged > 0) txt('bh-cycles', (charged/BAT_CAP).toFixed(1));
   txt('bh-dev', '0.0%');
+  txt('bh-flags', bmsFlags != null ? hex4(bmsFlags) : '--');
 
   var cells = [];
   for(var i=1;i<=14;i++) cells.push(d['Cell'+i+'Voltage'] != null ? d['Cell'+i+'Voltage']/1000 : null);
@@ -526,10 +581,14 @@ function updateBatteryUI(d, soc, voltage, current, charged, disch, regen, motT, 
     txt('bh-imb', imb.toFixed(0));
   }
 
-  setTemp('dt-mot',  motT,   85);
-  setTemp('dt-inv',  invT,   85);
-  setTemp('dt-bmin', batTMin,45);
-  setTemp('dt-bmax', batTMax,45);
+  setTemp('dt-amb',  d.ambientTemp     ?? null, 50);
+  setTemp('dt-mot',  d.motorTemp       ?? null, 85);
+  setTemp('dt-inv',  d.inverterTemp    ?? null, 85);
+  setTemp('dt-bmin', d.BatteryTempMin  ?? null, 45);
+  setTemp('dt-bmax', d.BatteryTempMax  ?? null, 45);
+  setTemp('dt-ntc1', d.batteryNTC1     ?? null, 45);
+  setTemp('dt-ntc2', d.batteryNTC2     ?? null, 45);
+  setTemp('dt-ntc3', d.batteryNTC3     ?? null, 45);
   txt('dt-chr', charged ? charged.toFixed(2)+' kWh' : '-- kWh');
   txt('dt-dis', disch   ? disch.toFixed(2)+' kWh'   : '-- kWh');
   txt('dt-reg', regen   ? regen.toFixed(2)+' kWh'   : '-- kWh');
@@ -572,7 +631,7 @@ function trackTrip(d, speed, soc, odo){
       var s = Math.round((Date.now()-trip.startTime)/1000);
       $('trip-timer').textContent = pad(Math.floor(s/60))+':'+pad(s%60);
       txt('tr-dist', (odo-trip.startOdo).toFixed(1)+' km');
-      txt('tr-bat',  (trip.startSoc-lastData.BatterySoC||0).toFixed(1)+'%');
+      txt('tr-bat',  (trip.startSoc-lastData.SOCbatteria||lastData.BatterySoC||0).toFixed(1)+'%');
       txt('tr-vmax', Math.round(trip.maxSpeed)+' km/h');
     }, 1000);
     $('trip-live-card').style.display = 'block';
@@ -657,6 +716,7 @@ function renderCells(cells){
 function $(id){ return document.getElementById(id); }
 function txt(id,v){ var el=$(id); if(el) el.textContent=v; }
 function pad(n){ return n<10?'0'+n:''+n; }
+function hex4(n){ return '0x'+(n>>>0).toString(16).toUpperCase().padStart(4,'0'); }
 function setAlarmDot(id,v){ var el=$(id); if(el) el.className='alarm-dot'+(v?' active':''); }
 function setTemp(id,v,warn){
   var el=$(id); if(!el) return;
@@ -676,7 +736,6 @@ function toggleDetails(){
   btn.classList.toggle('open'); sec.classList.toggle('open');
 }
 
-// Charger derniers trajets au démarrage
 (function(){ var trips=getTrips(); if(trips.length){ renderLastTrip(trips[0]); renderTripsTable(); } })();
 setInterval(updateLastUpdate, 10000);
 </script>
