@@ -38,7 +38,7 @@ Scooter ──TCP 38955──► silence-server ──MQTT 1883──► mosquit
 |---|---|
 | `docker-compose.yml` | Stack complète — seul fichier à coller dans Portainer |
 | `mosquitto/mosquitto.conf` | Listeners MQTT (1883) et WebSocket (9001) |
-| `silence/configuration.template.json` | Config silence-server, placeholder `TON_IMEI` |
+| `silence/configuration.template.json` | Config silence-server, placeholder `TON_IMEI` dans `IMEI_List` (tableau) |
 | `dashboard/index.template.html` | Interface HTML, placeholder `TON_IMEI` dans `var IMEI` |
 
 ## Configuration

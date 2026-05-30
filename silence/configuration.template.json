@@ -1,5 +1,5 @@
 {
-  "IMEI": "TON_IMEI",
+  "IMEI_List": ["TON_IMEI"],
   "TCPServer": {
     "BasePort": 38955,
     "serverPORT": 38955,
