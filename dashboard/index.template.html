@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Silence Scooter</title>
+<link rel="icon" type="image/png" href="">
 <script src="mqtt.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -13,8 +14,13 @@
   --text:#fff;--muted:rgba(255,255,255,.45);--muted2:rgba(255,255,255,.25);
   --teal:#00d4aa;--blue:#1565c0;
   --green:#4caf50;--yellow:#ff9800;--red:#f44336;--purple:#7c4dff;
+  --soc-color:#4caf50;
 }
 html,body{height:100%;background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 55%,var(--bg3) 100%);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+
+/* ── NIGHT MODE ── */
+body.night{--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.08)}
+body.night .gauge-pct,body.night .s3val,body.night .usage-val{opacity:.85}
 
 /* ── HEADER ── */
 header{background:var(--blue);height:48px;display:flex;align-items:center;padding:0 18px;font-size:1em;font-weight:600;letter-spacing:.5px;position:sticky;top:0;z-index:20;box-shadow:0 2px 12px rgba(0,0,0,.4)}
@@ -22,11 +28,29 @@ header{background:var(--blue);height:48px;display:flex;align-items:center;paddin
 .hdot{width:8px;height:8px;border-radius:50%;background:var(--red);transition:background .3s}
 .hdot.ok{background:var(--green)}
 #vin-lbl{font-size:.65em;font-weight:400;opacity:.45;margin-left:10px;letter-spacing:.3px}
+#night-btn{background:none;border:none;color:#fff;font-size:1.1em;cursor:pointer;padding:4px 6px;opacity:.7;margin-left:6px;border-radius:6px;transition:opacity .2s}
+#night-btn:hover{opacity:1}
+
+/* ── SOC BAR ── */
+#soc-bar{position:sticky;top:48px;z-index:19;height:4px;width:0%;background:var(--soc-color);transition:width .5s,background .5s}
 
 /* ── MAIN GRID ── */
 main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;gap:14px;padding:14px;align-items:start}
 @media(max-width:1100px){main{grid-template-columns:1fr 1fr}}
-@media(max-width:680px){main{grid-template-columns:1fr}}
+
+/* ── MOBILE PAGES ── */
+@media(max-width:680px){
+  main{display:none}
+  .mobile-pages{display:block;padding:10px;overflow:hidden}
+  .mobile-pages-track{display:flex;transition:transform .3s ease;will-change:transform}
+  .mobile-page{flex:0 0 100vw;min-width:0;display:flex;flex-direction:column;gap:12px;padding:0 4px}
+  .mobile-dots{display:flex;justify-content:center;gap:10px;padding:12px 0 8px}
+  .mobile-dot{width:8px;height:8px;border-radius:50%;background:var(--muted2);cursor:pointer;transition:background .2s}
+  .mobile-dot.active{background:var(--teal)}
+}
+@media(min-width:681px){
+  .mobile-pages{display:none}
+}
 
 /* ── CARDS ── */
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;backdrop-filter:blur(8px)}
@@ -43,13 +67,16 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 .cmd-icon-btn:hover{background:rgba(255,255,255,.13);color:#fff}
 .cmd-icon-btn:active{transform:scale(.95)}
 .cmd-icon-btn svg{width:22px;height:22px;opacity:.7}
+@media(max-width:680px){.cmd-icon-btn{min-height:52px}}
 
 /* ON / OFF buttons */
 .onoff-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.btn{border:none;border-radius:10px;font-weight:700;font-size:.85em;cursor:pointer;padding:11px;transition:opacity .15s,transform .1s;letter-spacing:.3px}
+.btn{border:none;border-radius:10px;font-weight:700;font-size:.85em;cursor:pointer;padding:11px;transition:opacity .15s,transform .1s,border .15s;letter-spacing:.3px;border:2px solid transparent}
 .btn:active{transform:scale(.96);opacity:.8}
 .btn-on{background:var(--green);color:#fff}
 .btn-off{background:var(--red);color:#fff}
+.btn[data-confirm="pending"]{border:2px dashed rgba(255,255,255,.8)!important}
+@media(max-width:680px){.btn{padding:14px}}
 
 /* Scooter visual */
 .scooter-area{background:var(--card);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:10px;position:relative;overflow:hidden}
@@ -88,11 +115,13 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 .gauge-wrap{position:relative;width:160px;height:160px;margin:0 auto}
 .gauge-wrap svg{width:100%;height:100%}
 .gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.gauge-pct{font-size:1.9em;font-weight:700;color:var(--text)}
+.gauge-pct{font-size:1.9em;font-weight:700;color:var(--soc-color);transition:color .5s}
 .gauge-sub{font-size:.65em;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
 .gauge-info{display:flex;flex-direction:column;gap:10px}
 .last-update{display:flex;align-items:center;gap:7px;font-size:.8em;color:var(--muted)}
 .lu-dot{width:10px;height:10px;border-radius:50%;background:var(--green);flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.lu-dot.live{animation:pulse 1.5s infinite}
 .bat-extras{display:flex;flex-direction:column;gap:6px}
 .bat-extra-row{display:flex;justify-content:space-between;font-size:.82em}
 .bat-extra-label{color:var(--muted)}
@@ -115,8 +144,11 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 .trips-table th{color:var(--muted);font-size:.7em;text-transform:uppercase;letter-spacing:1px;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;font-weight:500}
 .trips-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--text)}
 .trips-table tr:last-child td{border-bottom:none}
-.trips-table tr:hover td{background:rgba(255,255,255,.04)}
+.trips-table tr.trip-main{cursor:pointer}
+.trips-table tr.trip-main:hover td{background:rgba(255,255,255,.04)}
 .trips-table td:not(:first-child){text-align:right;font-weight:600;color:var(--teal)}
+.trip-expand td{padding:6px 8px 10px;background:rgba(0,212,170,.05);font-size:.78em;color:var(--muted)}
+.trip-expand td span{color:var(--text);font-weight:600}
 
 /* ══════════════ RIGHT COLUMN ══════════════ */
 .col-right{display:flex;flex-direction:column;gap:12px}
@@ -148,9 +180,11 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 .det-val{font-size:1.2em;font-weight:700;color:var(--teal)}
 .det-label{font-size:.62em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
 
-/* ALARM DOTS (in status bar) */
-.alarm-dot{width:8px;height:8px;border-radius:50%;background:var(--muted2);transition:background .3s;display:inline-block}
-.alarm-dot.active{background:var(--red);box-shadow:0 0 6px var(--red)}
+/* ALARM BADGES */
+.alarm-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:4px}
+.alarm-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:.68em;font-weight:600;letter-spacing:.4px;background:transparent;color:var(--muted2);border:1px solid transparent;transition:background .3s,color .3s,border-color .3s;user-select:none}
+.alarm-badge svg{width:11px;height:11px;flex-shrink:0}
+.alarm-badge.active{background:rgba(244,67,54,.25);color:#fff;border-color:rgba(244,67,54,.4)}
 
 /* CELLS (details panel) */
 .cells-14{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
@@ -175,15 +209,33 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 #det-section{display:none}
 #det-section.open{display:block}
 
+/* Trip live card sticky on mobile */
+@media(max-width:680px){
+  #trip-live-card.sticky-mobile{
+    position:fixed;bottom:0;left:0;right:0;z-index:100;
+    border-radius:14px 14px 0 0;padding:12px 16px;
+    transform:translateY(0);transition:transform .3s ease;
+    background:var(--bg2);border:1px solid var(--border)
+  }
+}
+
 </style>
 </head>
 <body>
 
 <header>
   🛵 Silence Scooter<span id="vin-lbl"></span>
-  <div id="hdr-conn"><div class="hdot" id="hdot"></div><span id="hlbl">Connexion…</span></div>
+  <div id="hdr-conn">
+    <div class="hdot" id="hdot"></div>
+    <span id="hlbl">Connexion…</span>
+    <button id="night-btn" onclick="toggleNight()" title="Mode nuit">🌙</button>
+  </div>
 </header>
 
+<!-- SOC bar -->
+<div id="soc-bar"></div>
+
+<!-- ══════════ DESKTOP LAYOUT ══════════ -->
 <main>
 
 <!-- ══════════ LEFT COLUMN ══════════ -->
@@ -207,21 +259,33 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 
   <!-- ON / OFF -->
   <div class="onoff-row">
-    <button class="btn btn-on" onclick="cmd('TURN_ON_SCOOTER')">▶ Allumer</button>
-    <button class="btn btn-off" onclick="cmd('TURN_OFF_SCOOTER')">⏹ Éteindre</button>
+    <button class="btn btn-on" id="btn-on" onclick="confirmCmd(this,'TURN_ON_SCOOTER','▶ Allumer')">▶ Allumer</button>
+    <button class="btn btn-off" id="btn-off" onclick="confirmCmd(this,'TURN_OFF_SCOOTER','⏹ Éteindre')">⏹ Éteindre</button>
   </div>
 
   <!-- Scooter visual -->
   <div class="scooter-area">
     <div class="scooter-emoji">🛵</div>
     <div class="scooter-status-pill s0" id="st-pill">Éteint</div>
-    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;justify-content:center">
-      <span class="alarm-dot" id="ad-mv"       title="Mouvement"></span>
-      <span class="alarm-dot" id="ad-fall"      title="Chute"></span>
-      <span class="alarm-dot" id="ad-speed"     title="Sur-vitesse"></span>
-      <span class="alarm-dot" id="ad-side"      title="Béquille sortie"></span>
-      <span class="alarm-dot" id="ad-sidedown"  title="Béquille abaissée"></span>
-      <span class="alarm-dot" id="ad-warn"      title="Témoins avertissement"></span>
+    <div class="alarm-badges">
+      <span class="alarm-badge" id="ad-mv">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Mvt
+      </span>
+      <span class="alarm-badge" id="ad-fall">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>Chute
+      </span>
+      <span class="alarm-badge" id="ad-speed">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 12l4-4"/></svg>Vitesse
+      </span>
+      <span class="alarm-badge" id="ad-side">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>Béq.↑
+      </span>
+      <span class="alarm-badge" id="ad-sidedown">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>Béq.↓
+      </span>
+      <span class="alarm-badge" id="ad-warn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Témoin
+      </span>
     </div>
   </div>
 
@@ -308,7 +372,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
           <circle cx="80" cy="80" r="62" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"
                   stroke-dasharray="292 390" stroke-linecap="round"
                   transform="rotate(135 80 80)"/>
-          <circle cx="80" cy="80" r="62" fill="none" stroke="url(#gGrad)" stroke-width="10"
+          <circle cx="80" cy="80" r="62" fill="none" stroke="var(--soc-color)" stroke-width="10"
                   stroke-dasharray="0 390" stroke-linecap="round"
                   transform="rotate(135 80 80)" id="gauge-arc"/>
         </svg>
@@ -444,6 +508,129 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 
 </main>
 
+<!-- ══════════ MOBILE PAGES ══════════ -->
+<div class="mobile-pages" id="mobile-pages">
+  <div class="mobile-pages-track" id="mobile-track">
+
+    <!-- PAGE 0 : Contrôles -->
+    <div class="mobile-page" id="mp-0">
+      <!-- Command icon buttons -->
+      <div class="cmd-bar">
+        <div class="cmd-icon-btn" onclick="cmd('OPEN_SEAT')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/><rect x="2" y="18" width="20" height="3" rx="1"/></svg>
+          Selle
+        </div>
+        <div class="cmd-icon-btn" onclick="cmd('FLASH')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Flash
+        </div>
+        <div class="cmd-icon-btn" onclick="cmd('BEEP_FLASH')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+          Beep
+        </div>
+      </div>
+      <div class="onoff-row">
+        <button class="btn btn-on" id="m-btn-on" onclick="confirmCmd(this,'TURN_ON_SCOOTER','▶ Allumer')">▶ Allumer</button>
+        <button class="btn btn-off" id="m-btn-off" onclick="confirmCmd(this,'TURN_OFF_SCOOTER','⏹ Éteindre')">⏹ Éteindre</button>
+      </div>
+      <div class="scooter-area">
+        <div class="scooter-emoji">🛵</div>
+        <div class="scooter-status-pill s0" id="m-st-pill">Éteint</div>
+        <div class="alarm-badges">
+          <span class="alarm-badge" id="m-ad-mv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Mvt</span>
+          <span class="alarm-badge" id="m-ad-fall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>Chute</span>
+          <span class="alarm-badge" id="m-ad-speed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 12l4-4"/></svg>Vitesse</span>
+          <span class="alarm-badge" id="m-ad-side"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>Béq.↑</span>
+          <span class="alarm-badge" id="m-ad-sidedown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>Béq.↓</span>
+          <span class="alarm-badge" id="m-ad-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Témoin</span>
+        </div>
+      </div>
+      <div class="status-row">
+        <div class="st-cell"><span class="st-icon">⚡</span><span class="st-val" id="m-s-bat">--%</span><span class="st-label">Batt.</span></div>
+        <div class="st-cell"><span class="st-icon">🏎️</span><span class="st-val" id="m-s-speed">0</span><span class="st-label">km/h</span></div>
+        <div class="st-cell"><span class="st-icon">📍</span><span class="st-val" id="m-s-odo">--</span><span class="st-label">km odo</span></div>
+        <div class="st-cell"><span class="st-icon">🔋</span><span class="st-val" id="m-s-batst">--</span><span class="st-label">État</span></div>
+      </div>
+    </div>
+
+    <!-- PAGE 1 : Batterie / Moteur -->
+    <div class="mobile-page" id="mp-1">
+      <div class="card">
+        <div class="gauge-card">
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 160 160">
+              <circle cx="80" cy="80" r="62" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"
+                      stroke-dasharray="292 390" stroke-linecap="round" transform="rotate(135 80 80)"/>
+              <circle cx="80" cy="80" r="62" fill="none" stroke="var(--soc-color)" stroke-width="10"
+                      stroke-dasharray="0 390" stroke-linecap="round" transform="rotate(135 80 80)" id="m-gauge-arc"/>
+            </svg>
+            <div class="gauge-center">
+              <div class="gauge-pct" id="m-g-pct">--%</div>
+              <div class="gauge-sub">Batterie</div>
+            </div>
+          </div>
+          <div class="gauge-info">
+            <div class="last-update"><div class="lu-dot" id="m-lu-dot"></div><span id="m-lu-txt">--</span></div>
+            <div class="bat-extras">
+              <div class="bat-extra-row"><span class="bat-extra-label">Tension</span><span class="bat-extra-val" id="m-g-v">-- V</span></div>
+              <div class="bat-extra-row"><span class="bat-extra-label">Courant</span><span class="bat-extra-val" id="m-g-a">-- A</span></div>
+              <div class="bat-extra-row"><span class="bat-extra-label">État</span><span class="bat-extra-val" id="m-g-state">--</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          Moteur
+        </div>
+        <div class="stats4" style="grid-template-columns:repeat(3,1fr)">
+          <div class="s3cell"><div class="s3val" id="m-mot-rpm">--</div><div class="s3label">RPM</div></div>
+          <div class="s3cell"><div class="s3val" id="m-mot-pwr">--</div><div class="s3label">kW</div></div>
+          <div class="s3cell"><div class="s3val" id="m-mot-bus">--</div><div class="s3label">Bus V</div></div>
+        </div>
+      </div>
+      <div class="stats4">
+        <div class="s3cell"><div class="s3val" id="m-m-range">--</div><div class="s3label">Autonomie km</div></div>
+        <div class="s3cell"><div class="s3val" id="m-m-cons">--</div><div class="s3label">Cons. %/km</div></div>
+        <div class="s3cell"><div class="s3val" id="m-m-regen">--</div><div class="s3label">Regen. %</div></div>
+        <div class="s3cell"><div class="s3val" id="m-mot-mode">--</div><div class="s3label">Mode</div></div>
+      </div>
+    </div>
+
+    <!-- PAGE 2 : GPS / Trajets -->
+    <div class="mobile-page" id="mp-2">
+      <div class="trip-header-card">
+        <div class="trip-dist-big" id="m-lt-dist-big">-- km</div>
+        <div class="trip-dist-label">Dernier trajet</div>
+        <div style="margin-top:6px;font-size:.72em;color:var(--muted)" id="m-lt-ago">--</div>
+      </div>
+      <div class="map-card">
+        <iframe id="m-map-iframe" allowfullscreen style="width:100%;height:200px;border:none;display:none"></iframe>
+        <div class="map-placeholder" id="m-map-placeholder">
+          <span>🗺️</span><span>En attente du GPS…</span>
+        </div>
+      </div>
+      <a id="m-gps-link-out" href="#" target="_blank" style="display:block;text-align:center;padding:8px;font-size:.75em;color:var(--muted);text-decoration:none;border-top:1px solid var(--border)">📍 Ouvrir dans Google Maps</a>
+      <div class="card">
+        <div class="card-title">Trajets récents</div>
+        <table class="trips-table">
+          <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Moy.</th></tr></thead>
+          <tbody id="m-trips-body"><tr><td colspan="4" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /mobile-track -->
+
+  <div class="mobile-dots">
+    <div class="mobile-dot active" onclick="goPage(0)"></div>
+    <div class="mobile-dot" onclick="goPage(1)"></div>
+    <div class="mobile-dot" onclick="goPage(2)"></div>
+  </div>
+</div>
+<!-- /mobile-pages -->
+
 <script>
 // ─── CONFIG ─────────────────────────────────────────────────
 var IMEI      = "TON_IMEI";
@@ -452,6 +639,67 @@ var TARIFF    = 0.215;   // €/kWh
 var BAT_CAP   = 5.6;     // kWh
 
 var DRIVE_MODES = {0:'Eco', 1:'City', 2:'Sport'};
+
+// ─── NIGHT MODE ─────────────────────────────────────────────
+(function(){
+  if(localStorage.getItem('nightMode') === '1') document.body.classList.add('night');
+})();
+function toggleNight(){
+  document.body.classList.toggle('night');
+  localStorage.setItem('nightMode', document.body.classList.contains('night') ? '1' : '0');
+}
+
+// ─── SOC COLOR ──────────────────────────────────────────────
+function getSocColor(soc){
+  if(soc > 50) return '#4caf50';
+  if(soc > 20) return '#ff9800';
+  return '#f44336';
+}
+function applySocColor(soc){
+  var color = getSocColor(soc);
+  document.documentElement.style.setProperty('--soc-color', color);
+}
+
+// ─── SOC BAR ────────────────────────────────────────────────
+function updateSocBar(soc){
+  var bar = document.getElementById('soc-bar');
+  if(!bar) return;
+  bar.style.width = soc + '%';
+  bar.style.background = getSocColor(soc);
+}
+
+// ─── FAVICON SOC ────────────────────────────────────────────
+var _favCanvas = null;
+function updateFavicon(soc){
+  if(!_favCanvas){
+    _favCanvas = document.createElement('canvas');
+    _favCanvas.width = 32; _favCanvas.height = 32;
+  }
+  var ctx = _favCanvas.getContext('2d');
+  ctx.clearRect(0,0,32,32);
+  // background circle
+  ctx.beginPath();
+  ctx.arc(16,16,14,0,2*Math.PI);
+  ctx.fillStyle = '#1a1a3a';
+  ctx.fill();
+  // arc
+  var start = -Math.PI/2 + Math.PI*2*0.75; // start at bottom-left (135deg)
+  var end   = start + (soc/100) * (Math.PI*2*0.75);
+  ctx.beginPath();
+  ctx.arc(16,16,11, -Math.PI*0.75, -Math.PI*0.75 + (soc/100)*Math.PI*1.5);
+  ctx.strokeStyle = getSocColor(soc);
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  // text
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(Math.round(soc), 16, 16);
+  var link = document.querySelector('link[rel=icon]');
+  if(link) link.href = _favCanvas.toDataURL();
+}
 
 // ─── MQTT ────────────────────────────────────────────────────
 var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
@@ -488,15 +736,51 @@ function setConn(ok){
   $('hdot').className = 'hdot' + (ok ? ' ok' : '');
   $('hlbl').textContent = ok ? 'Connecté' : 'Déconnecté';
   $('lu-dot').style.background = ok ? 'var(--green)' : 'var(--red)';
+  var mDot = $('m-lu-dot');
+  if(mDot) mDot.style.background = ok ? 'var(--green)' : 'var(--red)';
 }
 
 function updateLastUpdate(){
-  if (!lastMsgTime){ $('lu-txt').textContent='En attente…'; return; }
+  if (!lastMsgTime){
+    txt('lu-txt','En attente…');
+    txt('m-lu-txt','En attente…');
+    $('lu-dot').classList.remove('live');
+    var mDot=$('m-lu-dot'); if(mDot) mDot.classList.remove('live');
+    return;
+  }
   var s = Math.round((Date.now()-lastMsgTime)/1000);
-  $('lu-txt').textContent = s < 60 ? 'Il y a '+s+'s' : 'Il y a '+Math.round(s/60)+'min';
+  var label = s < 60 ? 'Il y a '+s+'s' : 'Il y a '+Math.round(s/60)+'min';
+  txt('lu-txt', label);
+  txt('m-lu-txt', label);
+  // pulsing dot: active if last msg < 30s
+  var isLive = s < 30;
+  var dot = $('lu-dot');
+  if(isLive) dot.classList.add('live'); else dot.classList.remove('live');
+  var mDot = $('m-lu-dot');
+  if(mDot){ if(isLive) mDot.classList.add('live'); else mDot.classList.remove('live'); }
 }
 
 function cmd(c){ client.publish('home/silence-server/'+IMEI+'/command/'+c, ''); }
+
+// ─── DOUBLE CONFIRM ─────────────────────────────────────────
+var _confirmTimers = {};
+function confirmCmd(btn, cmdId, label){
+  if(btn.dataset.confirm === 'pending'){
+    // second click → send
+    clearTimeout(_confirmTimers[btn.id]);
+    resetBtn(btn, label);
+    cmd(cmdId);
+  } else {
+    // first click → arm
+    btn.dataset.confirm = 'pending';
+    btn.textContent = 'Confirmer ?';
+    _confirmTimers[btn.id] = setTimeout(function(){ resetBtn(btn, label); }, 2500);
+  }
+}
+function resetBtn(btn, label){
+  btn.dataset.confirm = '';
+  btn.textContent = label;
+}
 
 // ─── UPDATE ──────────────────────────────────────────────────
 function update(d){
@@ -521,26 +805,43 @@ function update(d){
 
   if(vin) txt('vin-lbl', 'VIN: '+vin);
 
+  // ── SOC color + bar + favicon
+  applySocColor(soc);
+  updateSocBar(soc);
+  updateFavicon(soc);
+
   // ── Status pill
   var STATUS = {0:'Éteint',1:'Veille',2:'Démarrage',3:'Prêt',4:'En route',5:'En charge',6:'Sans batterie'};
   var SCLS   = {0:'s0',1:'s0',2:'s2',3:'s3',4:'s4',5:'s5',6:'s6'};
   var pill   = $('st-pill');
-  pill.textContent = STATUS[status] ?? ('État '+status);
-  pill.className   = 'scooter-status-pill ' + (SCLS[status]||'s0');
+  if(pill){ pill.textContent = STATUS[status] ?? ('État '+status); pill.className = 'scooter-status-pill ' + (SCLS[status]||'s0'); }
+  var mpill = $('m-st-pill');
+  if(mpill){ mpill.textContent = STATUS[status] ?? ('État '+status); mpill.className = 'scooter-status-pill ' + (SCLS[status]||'s0'); }
 
-  // ── Alarms
-  setAlarmDot('ad-mv',       d.movementAlarm);
-  setAlarmDot('ad-fall',     d.bikefall);
-  setAlarmDot('ad-speed',    d.overspeedAlarm);
-  setAlarmDot('ad-side',     d.sidestandOut);
-  setAlarmDot('ad-sidedown', d.sidestandDown);
-  setAlarmDot('ad-warn',     d.warningLights);
+  // ── Alarms (desktop + mobile)
+  setAlarmBadge('ad-mv',       d.movementAlarm);
+  setAlarmBadge('ad-fall',     d.bikefall);
+  setAlarmBadge('ad-speed',    d.overspeedAlarm);
+  setAlarmBadge('ad-side',     d.sidestandOut);
+  setAlarmBadge('ad-sidedown', d.sidestandDown);
+  setAlarmBadge('ad-warn',     d.warningLights);
+  setAlarmBadge('m-ad-mv',       d.movementAlarm);
+  setAlarmBadge('m-ad-fall',     d.bikefall);
+  setAlarmBadge('m-ad-speed',    d.overspeedAlarm);
+  setAlarmBadge('m-ad-side',     d.sidestandOut);
+  setAlarmBadge('m-ad-sidedown', d.sidestandDown);
+  setAlarmBadge('m-ad-warn',     d.warningLights);
 
-  // ── Status row (left)
+  // ── Status row (desktop)
   txt('s-bat',   Math.round(soc)+'%');
   txt('s-speed', Math.round(speed));
   txt('s-odo',   odo.toFixed(0));
   txt('s-batst', d.batteryIn===0 ? 'Absente' : d.charging ? 'Charge' : 'OK');
+  // Status row (mobile)
+  txt('m-s-bat',   Math.round(soc)+'%');
+  txt('m-s-speed', Math.round(speed));
+  txt('m-s-odo',   odo.toFixed(0));
+  txt('m-s-batst', d.batteryIn===0 ? 'Absente' : d.charging ? 'Charge' : 'OK');
 
   // ── Motor card
   txt('mot-rpm',   motorRPM   != null ? Math.round(motorRPM)      : '--');
@@ -548,6 +849,11 @@ function update(d){
   txt('mot-bus',   busVoltage != null ? busVoltage.toFixed(1)+' V' : '--');
   txt('mot-mode',  driveMode  != null ? (DRIVE_MODES[driveMode] ?? 'Mode '+driveMode) : '--');
   txt('mot-ready', driveReady != null ? (driveReady ? '✓' : '✗')  : '--');
+  // mobile motor
+  txt('m-mot-rpm',  motorRPM   != null ? Math.round(motorRPM)      : '--');
+  txt('m-mot-pwr',  motorPower != null ? motorPower.toFixed(1)      : '--');
+  txt('m-mot-bus',  busVoltage != null ? busVoltage.toFixed(1)+' V' : '--');
+  txt('m-mot-mode', driveMode  != null ? (DRIVE_MODES[driveMode] ?? 'Mode '+driveMode) : '--');
 
   // ── Range / cons / regen
   txt('m-range',    d.range     != null ? Math.round(d.range)     : '--');
@@ -556,6 +862,10 @@ function update(d){
   var consPkm = (net > 0 && odo > 0) ? (net/BAT_CAP*100/odo) : null;
   txt('m-cons', consPkm ? consPkm.toFixed(2) : '--');
   txt('m-regen', charged > 0 ? (regen/charged*100).toFixed(1) : '--');
+  // mobile
+  txt('m-m-range', d.range != null ? Math.round(d.range) : '--');
+  txt('m-m-cons',  consPkm ? consPkm.toFixed(2) : '--');
+  txt('m-m-regen', charged > 0 ? (regen/charged*100).toFixed(1) : '--');
 
   // ── Usage stats
   var trips = getTrips();
@@ -581,13 +891,22 @@ function updateBatteryUI(d, soc, voltage, current, charged, disch, regen){
 
   var arc = $('gauge-arc');
   var circ = 2*Math.PI*62, arcTotal = circ*270/360;
-  arc.setAttribute('stroke-dasharray', ((soc/100)*arcTotal).toFixed(1)+' '+circ.toFixed(1));
+  var arcLen = ((soc/100)*arcTotal).toFixed(1)+' '+circ.toFixed(1);
+  if(arc) arc.setAttribute('stroke-dasharray', arcLen);
+  var marc = $('m-gauge-arc');
+  if(marc) marc.setAttribute('stroke-dasharray', arcLen);
+
   txt('g-pct',   Math.round(soc)+'%');
+  txt('m-g-pct', Math.round(soc)+'%');
   txt('g-v',     voltage    ? voltage.toFixed(1)+' V' : '-- V');
+  txt('m-g-v',   voltage    ? voltage.toFixed(1)+' V' : '-- V');
   txt('g-a',     current    ? current.toFixed(1)+' A' : '-- A');
+  txt('m-g-a',   current    ? current.toFixed(1)+' A' : '-- A');
   txt('g-bmsa',  bmsCurrent != null ? bmsCurrent.toFixed(1)+' A' : '-- A');
   txt('g-astra', astraSOC   != null ? Math.round(astraSOC)+'%'   : '--%');
-  txt('g-state', d.charging ? '⚡ Charge' : (d.batteryOut ? '🔓 Retirée' : '✓ Normal'));
+  var stateStr = d.charging ? '⚡ Charge' : (d.batteryOut ? '🔓 Retirée' : '✓ Normal');
+  txt('g-state', stateStr);
+  txt('m-g-state', stateStr);
 
   txt('bh-v', voltage ? voltage.toFixed(0) : '--');
   if(charged > 0) txt('bh-cycles', (charged/BAT_CAP).toFixed(1));
@@ -628,15 +947,25 @@ function updateCosts(consPkm, odo){
 function updateGPS(d){
   if(!d.latitude || !d.longitude) return;
   var lat=parseFloat(d.latitude), lon=parseFloat(d.longitude);
+  // desktop
   var iframe = document.getElementById('map-iframe');
-  if(iframe.style.display==='none'){
+  if(iframe && iframe.style.display==='none'){
     iframe.src = 'https://www.openstreetmap.org/export/embed.html?bbox='+(lon-.005)+','+(lat-.005)+','+(lon+.005)+','+(lat+.005)+'&layer=mapnik&marker='+lat+','+lon;
     iframe.style.display = 'block';
-    document.getElementById('map-placeholder').style.display = 'none';
+    var ph = document.getElementById('map-placeholder');
+    if(ph) ph.style.display = 'none';
   }
   var gl = $('gps-link-out');
-  gl.href = 'https://www.google.com/maps?q='+lat+','+lon;
-  gl.textContent = '📍 '+lat.toFixed(5)+', '+lon.toFixed(5)+' — Ouvrir Maps';
+  if(gl){ gl.href='https://www.google.com/maps?q='+lat+','+lon; gl.textContent='📍 '+lat.toFixed(5)+', '+lon.toFixed(5)+' — Ouvrir Maps'; }
+  // mobile
+  var mIframe = $('m-map-iframe');
+  if(mIframe && mIframe.style.display==='none'){
+    mIframe.src = 'https://www.openstreetmap.org/export/embed.html?bbox='+(lon-.005)+','+(lat-.005)+','+(lon+.005)+','+(lat+.005)+'&layer=mapnik&marker='+lat+','+lon;
+    mIframe.style.display = 'block';
+    var mph = $('m-map-placeholder'); if(mph) mph.style.display='none';
+  }
+  var mgl = $('m-gps-link-out');
+  if(mgl){ mgl.href='https://www.google.com/maps?q='+lat+','+lon; mgl.textContent='📍 '+lat.toFixed(5)+', '+lon.toFixed(5)+' — Ouvrir Maps'; }
 }
 
 // ─── TRIP TRACKING ───────────────────────────────────────────
@@ -656,7 +985,9 @@ function trackTrip(d, speed, soc, odo){
       txt('tr-bat',  (trip.startSoc-lastData.SOCbatteria||lastData.BatterySoC||0).toFixed(1)+'%');
       txt('tr-vmax', Math.round(trip.maxSpeed)+' km/h');
     }, 1000);
-    $('trip-live-card').style.display = 'block';
+    var card = $('trip-live-card');
+    card.style.display = 'block';
+    if(window.innerWidth <= 680) card.classList.add('sticky-mobile');
   }
 
   if(trip && moving){
@@ -680,7 +1011,9 @@ function trackTrip(d, speed, soc, odo){
     };
     saveTrip(t); renderLastTrip(t);
     trip = null; tripSpeeds = [];
-    $('trip-live-card').style.display = 'none';
+    var card = $('trip-live-card');
+    card.style.display = 'none';
+    card.classList.remove('sticky-mobile');
   }
 }
 
@@ -702,23 +1035,57 @@ function renderLastTrip(t){
   txt('lt-bat',  t.bat+' %');
   txt('lt-vavg', t.vavg+' km/h');
   txt('lt-vmax', t.vmax+' km/h');
+  // mobile
+  txt('m-lt-dist-big', t.dist+' km');
+  txt('m-lt-ago', timeAgo(t.ts));
 }
 
 function renderTripsTable(){
   var trips = getTrips(); if(!trips.length) return;
+  // desktop
   var tbody = $('trips-body');
-  tbody.innerHTML = '';
-  trips.slice(0,10).forEach(function(t){
-    var tr = document.createElement('tr');
-    tr.innerHTML = '<td>'+t.date+'</td><td>'+t.dur+'</td><td>'+t.dist+'</td><td>'+t.vavg+'</td>';
-    tbody.appendChild(tr);
-  });
+  if(tbody){
+    tbody.innerHTML = '';
+    trips.slice(0,10).forEach(function(t, idx){
+      var tr = document.createElement('tr');
+      tr.className = 'trip-main';
+      tr.dataset.idx = idx;
+      tr.innerHTML = '<td>'+t.date+'</td><td>'+t.dur+'min</td><td>'+t.dist+' km</td><td>'+t.vavg+' km/h</td>';
+      tr.onclick = function(){ toggleTripExpand(this, t); };
+      tbody.appendChild(tr);
+    });
+  }
+  // mobile
+  var mtbody = $('m-trips-body');
+  if(mtbody){
+    mtbody.innerHTML = '';
+    trips.slice(0,10).forEach(function(t, idx){
+      var tr = document.createElement('tr');
+      tr.className = 'trip-main';
+      tr.innerHTML = '<td>'+t.date+'</td><td>'+t.dur+'min</td><td>'+t.dist+' km</td><td>'+t.vavg+' km/h</td>';
+      tr.onclick = function(){ toggleTripExpand(this, t); };
+      mtbody.appendChild(tr);
+    });
+  }
   renderLastTrip(trips[0]);
+}
+
+function toggleTripExpand(tr, t){
+  var next = tr.nextSibling;
+  if(next && next.classList && next.classList.contains('trip-expand')){
+    next.parentNode.removeChild(next);
+    return;
+  }
+  var exp = document.createElement('tr');
+  exp.className = 'trip-expand';
+  exp.innerHTML = '<td colspan="4">🔋 Bat. conso : <span>'+t.bat+' %</span> &nbsp;|&nbsp; ⚡ Vmax : <span>'+t.vmax+' km/h</span></td>';
+  tr.parentNode.insertBefore(exp, tr.nextSibling);
 }
 
 // ─── CELLS ───────────────────────────────────────────────────
 function renderCells(cells){
   var g = $('cells-grid');
+  if(!g) return;
   if(!g.children.length){
     for(var i=0;i<14;i++){
       var d=document.createElement('div'); d.className='cellv';
@@ -739,7 +1106,7 @@ function $(id){ return document.getElementById(id); }
 function txt(id,v){ var el=$(id); if(el) el.textContent=v; }
 function pad(n){ return n<10?'0'+n:''+n; }
 function hex4(n){ return '0x'+(n>>>0).toString(16).toUpperCase().padStart(4,'0'); }
-function setAlarmDot(id,v){ var el=$(id); if(el) el.className='alarm-dot'+(v?' active':''); }
+function setAlarmBadge(id,v){ var el=$(id); if(el) el.className='alarm-badge'+(v?' active':''); }
 function setTemp(id,v,warn){
   var el=$(id); if(!el) return;
   if(v==null){el.textContent='--°C';el.className='temp-val tc';return;}
@@ -757,6 +1124,34 @@ function toggleDetails(){
   var btn=$('det-toggle'), sec=$('det-section');
   btn.classList.toggle('open'); sec.classList.toggle('open');
 }
+
+// ─── MOBILE SWIPE / PAGES ────────────────────────────────────
+var _curPage = 0;
+var _touchStartX = 0;
+
+function goPage(n){
+  var track = $('mobile-track');
+  if(!track) return;
+  _curPage = Math.max(0, Math.min(2, n));
+  track.style.transform = 'translateX(-'+ (_curPage * 100) +'vw)';
+  var dots = document.querySelectorAll('.mobile-dot');
+  dots.forEach(function(d,i){ d.classList.toggle('active', i===_curPage); });
+}
+
+(function(){
+  var pages = $('mobile-pages');
+  if(!pages) return;
+  pages.addEventListener('touchstart', function(e){
+    _touchStartX = e.touches[0].clientX;
+  }, {passive:true});
+  pages.addEventListener('touchend', function(e){
+    var dx = e.changedTouches[0].clientX - _touchStartX;
+    if(Math.abs(dx) > 40){
+      if(dx < 0) goPage(_curPage + 1);
+      else goPage(_curPage - 1);
+    }
+  }, {passive:true});
+})();
 
 (function(){ var trips=getTrips(); if(trips.length){ renderLastTrip(trips[0]); renderTripsTable(); } })();
 setInterval(updateLastUpdate, 10000);
