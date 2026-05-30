@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Laisser toujours l'utilisateur réaliser les commits et les push
 - Mettre à jour CLAUDE.md quand c'est nécessaire — il doit toujours refléter le code actuel
 - L'installation se fait uniquement via Portainer (modification du docker-compose via stack)
+- **Toujours synchroniser le bloc `docker-compose` dans README.md** quand `docker-compose.yml` est modifié — le README contient une copie complète du compose pour Portainer
 
 ## Project Overview
 
