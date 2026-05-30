@@ -639,6 +639,8 @@ var TARIFF    = 0.215;   // €/kWh
 var BAT_CAP   = 5.6;     // kWh
 
 var DRIVE_MODES = {0:'Eco', 1:'City', 2:'Sport'};
+var STATUS      = {0:'Éteint',1:'Veille',2:'Démarrage',3:'Prêt',4:'En route',5:'En charge',6:'Sans batterie'};
+var SCLS        = {0:'s0',1:'s0',2:'s2',3:'s3',4:'s4',5:'s5',6:'s6'};
 
 // ─── NIGHT MODE ─────────────────────────────────────────────
 (function(){
@@ -700,7 +702,13 @@ function updateFavicon(soc){
 
 // ─── MQTT ────────────────────────────────────────────────────
 var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
-var lastData = {}, lastMsgTime = null, _dataFromCache = false;
+var lastData = {}, lastMsgTime = null, _dataFromCache = false, _saveTimer = null;
+function scheduleSave(){
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(function(){
+    localStorage.setItem('scooter_last', JSON.stringify({data:lastData, time:lastMsgTime}));
+  }, 500);
+}
 
 client.on('connect', function(){
   setConn(true);
@@ -727,7 +735,7 @@ client.on('message', function(t, m){
       lastMsgTime = Date.now();
     }
     _dataFromCache = false;
-    localStorage.setItem('scooter_last', JSON.stringify({data:lastData, time:lastMsgTime}));
+    scheduleSave();
   }catch(e){}
 });
 
@@ -815,8 +823,6 @@ function update(d){
   updateFavicon(soc);
 
   // ── Status pill
-  var STATUS = {0:'Éteint',1:'Veille',2:'Démarrage',3:'Prêt',4:'En route',5:'En charge',6:'Sans batterie'};
-  var SCLS   = {0:'s0',1:'s0',2:'s2',3:'s3',4:'s4',5:'s5',6:'s6'};
   ['st-pill','m-st-pill'].forEach(function(id){
     var el=$(id); if(!el) return;
     el.textContent = STATUS[status] ?? ('État '+status);
@@ -863,7 +869,6 @@ function update(d){
   updateGPS(d);
 
   trackTrip(d, speed, soc, odo);
-  renderTripsTable();
 }
 
 function updateBatteryUI(d, soc, voltage, current, charged, disch, regen){
@@ -997,6 +1002,7 @@ function saveTrip(t){
   trips.unshift(t);
   if(trips.length > 20) trips = trips.slice(0,20);
   localStorage.setItem('scooter_trips', JSON.stringify(trips));
+  renderTripsTable();
 }
 function getTrips(){ try{ return JSON.parse(localStorage.getItem('scooter_trips'))||[]; }catch(e){ return []; } }
 
@@ -1127,6 +1133,7 @@ function goPage(n){
 })();
 
 (function(){
+  var restored = false;
   var saved = localStorage.getItem('scooter_last');
   if(saved){
     try{
@@ -1136,11 +1143,15 @@ function goPage(n){
         lastMsgTime = obj.time || null;
         _dataFromCache = true;
         update(lastData);
+        renderTripsTable();
+        restored = true;
       }
     }catch(e){}
   }
-  var trips = getTrips();
-  if(trips.length){ renderLastTrip(trips[0]); renderTripsTable(); }
+  if(!restored){
+    var trips = getTrips();
+    if(trips.length){ renderLastTrip(trips[0]); renderTripsTable(); }
+  }
 })();
 updateLastUpdate();
 setInterval(updateLastUpdate, 10000);

@@ -7,24 +7,24 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 BROKER = os.getenv('MQTT_HOST', 'mosquitto')
 PORT   = int(os.getenv('MQTT_PORT', 1883))
 
-# Separate publisher client — no subscriptions, no loop risk
-pub = mqtt.Client(client_id='silence-retain-pub')
-pub.connect(BROKER, PORT)
-pub.loop_start()
-
-def on_connect(client, userdata, flags, rc):
-    logging.info('Connected rc=%d', rc)
+def on_connect(client, userdata, connect_flags, reason_code, properties):
+    logging.info('Connected: %s', reason_code)
+    opts = mqtt.SubscribeOptions(qos=0, noLocal=True)
     client.subscribe([
-        ('home/silence-server/+/status',   0),
-        ('home/silence-server/+/status/+', 0),
+        ('home/silence-server/+/status',   opts),
+        ('home/silence-server/+/status/+', opts),
     ])
 
 def on_message(client, userdata, msg):
     if not msg.retain:
-        pub.publish(msg.topic, msg.payload, qos=0, retain=True)
+        client.publish(msg.topic, msg.payload, qos=0, retain=True)
 
-sub = mqtt.Client(client_id='silence-retain-sub')
-sub.on_connect = on_connect
-sub.on_message = on_message
-sub.connect(BROKER, PORT)
-sub.loop_forever()
+client = mqtt.Client(
+    callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+    client_id='silence-retain-relay',
+    protocol=mqtt.MQTTv5
+)
+client.on_connect = on_connect
+client.on_message = on_message
+client.connect(BROKER, PORT)
+client.loop_forever()
