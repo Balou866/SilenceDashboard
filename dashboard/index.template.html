@@ -457,10 +457,32 @@ var DRIVE_MODES = {0:'Eco', 1:'City', 2:'Sport'};
 var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
 var lastData = {}, lastMsgTime = null;
 
-client.on('connect',    function(){ setConn(true);  client.subscribe('home/silence-server/+/status'); });
+client.on('connect', function(){
+  setConn(true);
+  client.subscribe('home/silence-server/+/status');
+  client.subscribe('home/silence-server/+/status/+');
+});
 client.on('offline',    function(){ setConn(false); });
 client.on('disconnect', function(){ setConn(false); });
-client.on('message',    function(t, m){ try{ update(JSON.parse(m.toString())); lastMsgTime=Date.now(); }catch(e){} });
+client.on('message', function(t, m){
+  try{
+    var parts = t.split('/');
+    var lastPart = parts[parts.length - 1];
+    var secondLast = parts[parts.length - 2];
+    if(secondLast === 'status'){
+      // new format: home/silence-server/<IMEI>/status/<field>
+      var raw = m.toString();
+      var val = (raw === 'None' || raw === 'null' || raw === '') ? null : (isNaN(Number(raw)) ? raw : Number(raw));
+      lastData[lastPart] = val;
+      lastMsgTime = Date.now();
+      update(lastData);
+    } else {
+      // old format: home/silence-server/<IMEI>/status → JSON payload
+      update(JSON.parse(m.toString()));
+      lastMsgTime = Date.now();
+    }
+  }catch(e){}
+});
 
 function setConn(ok){
   $('hdot').className = 'hdot' + (ok ? ' ok' : '');
