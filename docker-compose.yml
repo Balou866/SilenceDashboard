@@ -50,6 +50,16 @@ services:
       timeout: 5s
       retries: 5
 
+  mqtt-retain:
+    build:
+      context: https://github.com/Balou866/SilenceDashboard.git
+      dockerfile: mqtt-retain/Dockerfile
+    container_name: silence-retain
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+
   silence-server:
     build:
       context: https://github.com/Balou866/SilenceDashboard.git

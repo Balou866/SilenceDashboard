@@ -41,9 +41,9 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 /* ── MOBILE PAGES ── */
 @media(max-width:680px){
   main{display:none}
-  .mobile-pages{display:block;padding:10px;overflow:hidden}
+  .mobile-pages{display:block;padding:0;overflow:hidden}
   .mobile-pages-track{display:flex;transition:transform .3s ease;will-change:transform}
-  .mobile-page{flex:0 0 100vw;min-width:0;display:flex;flex-direction:column;gap:12px;padding:0 4px}
+  .mobile-page{flex:0 0 100vw;min-width:0;display:flex;flex-direction:column;gap:12px;padding:10px 12px 0}
   .mobile-dots{display:flex;justify-content:center;gap:10px;padding:12px 0 8px}
   .mobile-dot{width:8px;height:8px;border-radius:50%;background:var(--muted2);cursor:pointer;transition:background .2s}
   .mobile-dot.active{background:var(--teal)}
@@ -682,9 +682,6 @@ function updateFavicon(soc){
   ctx.arc(16,16,14,0,2*Math.PI);
   ctx.fillStyle = '#1a1a3a';
   ctx.fill();
-  // arc
-  var start = -Math.PI/2 + Math.PI*2*0.75; // start at bottom-left (135deg)
-  var end   = start + (soc/100) * (Math.PI*2*0.75);
   ctx.beginPath();
   ctx.arc(16,16,11, -Math.PI*0.75, -Math.PI*0.75 + (soc/100)*Math.PI*1.5);
   ctx.strokeStyle = getSocColor(soc);
@@ -703,7 +700,7 @@ function updateFavicon(soc){
 
 // ─── MQTT ────────────────────────────────────────────────────
 var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
-var lastData = {}, lastMsgTime = null;
+var lastData = {}, lastMsgTime = null, _dataFromCache = false;
 
 client.on('connect', function(){
   setConn(true);
@@ -729,6 +726,8 @@ client.on('message', function(t, m){
       update(JSON.parse(m.toString()));
       lastMsgTime = Date.now();
     }
+    _dataFromCache = false;
+    localStorage.setItem('scooter_last', JSON.stringify({data:lastData, time:lastMsgTime}));
   }catch(e){}
 });
 
@@ -741,23 +740,28 @@ function setConn(ok){
 }
 
 function updateLastUpdate(){
-  if (!lastMsgTime){
-    txt('lu-txt','En attente…');
-    txt('m-lu-txt','En attente…');
-    $('lu-dot').classList.remove('live');
-    var mDot=$('m-lu-dot'); if(mDot) mDot.classList.remove('live');
+  var dots = [$('lu-dot'), $('m-lu-dot')];
+  if(!lastMsgTime){
+    txt2('lu-txt','En attente…');
+    dots.forEach(function(el){ if(el){ el.classList.remove('live'); el.style.background=''; } });
     return;
   }
-  var s = Math.round((Date.now()-lastMsgTime)/1000);
-  var label = s < 60 ? 'Il y a '+s+'s' : 'Il y a '+Math.round(s/60)+'min';
-  txt('lu-txt', label);
-  txt('m-lu-txt', label);
-  // pulsing dot: active if last msg < 30s
-  var isLive = s < 30;
-  var dot = $('lu-dot');
-  if(isLive) dot.classList.add('live'); else dot.classList.remove('live');
-  var mDot = $('m-lu-dot');
-  if(mDot){ if(isLive) mDot.classList.add('live'); else mDot.classList.remove('live'); }
+  var label, isLive = false;
+  if(_dataFromCache){
+    var d = new Date(lastMsgTime);
+    label = '📦 ' + d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    dots.forEach(function(el){ if(el){ el.classList.remove('live'); el.style.background='var(--yellow)'; } });
+  } else {
+    var s = Math.round((Date.now()-lastMsgTime)/1000);
+    label = s < 60 ? 'Il y a '+s+'s' : 'Il y a '+Math.round(s/60)+'min';
+    isLive = s < 30;
+    dots.forEach(function(el){
+      if(!el) return;
+      el.style.background = '';
+      if(isLive) el.classList.add('live'); else el.classList.remove('live');
+    });
+  }
+  txt2('lu-txt', label);
 }
 
 function cmd(c){ client.publish('home/silence-server/'+IMEI+'/command/'+c, ''); }
@@ -813,59 +817,37 @@ function update(d){
   // ── Status pill
   var STATUS = {0:'Éteint',1:'Veille',2:'Démarrage',3:'Prêt',4:'En route',5:'En charge',6:'Sans batterie'};
   var SCLS   = {0:'s0',1:'s0',2:'s2',3:'s3',4:'s4',5:'s5',6:'s6'};
-  var pill   = $('st-pill');
-  if(pill){ pill.textContent = STATUS[status] ?? ('État '+status); pill.className = 'scooter-status-pill ' + (SCLS[status]||'s0'); }
-  var mpill = $('m-st-pill');
-  if(mpill){ mpill.textContent = STATUS[status] ?? ('État '+status); mpill.className = 'scooter-status-pill ' + (SCLS[status]||'s0'); }
+  ['st-pill','m-st-pill'].forEach(function(id){
+    var el=$(id); if(!el) return;
+    el.textContent = STATUS[status] ?? ('État '+status);
+    el.className   = 'scooter-status-pill ' + (SCLS[status]||'s0');
+  });
 
   // ── Alarms (desktop + mobile)
-  setAlarmBadge('ad-mv',       d.movementAlarm);
-  setAlarmBadge('ad-fall',     d.bikefall);
-  setAlarmBadge('ad-speed',    d.overspeedAlarm);
-  setAlarmBadge('ad-side',     d.sidestandOut);
-  setAlarmBadge('ad-sidedown', d.sidestandDown);
-  setAlarmBadge('ad-warn',     d.warningLights);
-  setAlarmBadge('m-ad-mv',       d.movementAlarm);
-  setAlarmBadge('m-ad-fall',     d.bikefall);
-  setAlarmBadge('m-ad-speed',    d.overspeedAlarm);
-  setAlarmBadge('m-ad-side',     d.sidestandOut);
-  setAlarmBadge('m-ad-sidedown', d.sidestandDown);
-  setAlarmBadge('m-ad-warn',     d.warningLights);
+  [['ad-mv',d.movementAlarm],['ad-fall',d.bikefall],['ad-speed',d.overspeedAlarm],
+   ['ad-side',d.sidestandOut],['ad-sidedown',d.sidestandDown],['ad-warn',d.warningLights]
+  ].forEach(function(a){ setAlarmBadge(a[0],a[1]); setAlarmBadge('m-'+a[0],a[1]); });
 
-  // ── Status row (desktop)
-  txt('s-bat',   Math.round(soc)+'%');
-  txt('s-speed', Math.round(speed));
-  txt('s-odo',   odo.toFixed(0));
-  txt('s-batst', d.batteryIn===0 ? 'Absente' : d.charging ? 'Charge' : 'OK');
-  // Status row (mobile)
-  txt('m-s-bat',   Math.round(soc)+'%');
-  txt('m-s-speed', Math.round(speed));
-  txt('m-s-odo',   odo.toFixed(0));
-  txt('m-s-batst', d.batteryIn===0 ? 'Absente' : d.charging ? 'Charge' : 'OK');
+  // ── Status row
+  txt2('s-bat',   Math.round(soc)+'%');
+  txt2('s-speed', Math.round(speed));
+  txt2('s-odo',   odo.toFixed(0));
+  txt2('s-batst', d.batteryIn===0 ? 'Absente' : d.charging ? 'Charge' : 'OK');
 
   // ── Motor card
-  txt('mot-rpm',   motorRPM   != null ? Math.round(motorRPM)      : '--');
-  txt('mot-pwr',   motorPower != null ? motorPower.toFixed(1)      : '--');
-  txt('mot-bus',   busVoltage != null ? busVoltage.toFixed(1)+' V' : '--');
-  txt('mot-mode',  driveMode  != null ? (DRIVE_MODES[driveMode] ?? 'Mode '+driveMode) : '--');
+  txt2('mot-rpm',  motorRPM   != null ? Math.round(motorRPM)      : '--');
+  txt2('mot-pwr',  motorPower != null ? motorPower.toFixed(1)      : '--');
+  txt2('mot-bus',  busVoltage != null ? busVoltage.toFixed(1)+' V' : '--');
+  txt2('mot-mode', driveMode  != null ? (DRIVE_MODES[driveMode] ?? 'Mode '+driveMode) : '--');
   txt('mot-ready', driveReady != null ? (driveReady ? '✓' : '✗')  : '--');
-  // mobile motor
-  txt('m-mot-rpm',  motorRPM   != null ? Math.round(motorRPM)      : '--');
-  txt('m-mot-pwr',  motorPower != null ? motorPower.toFixed(1)      : '--');
-  txt('m-mot-bus',  busVoltage != null ? busVoltage.toFixed(1)+' V' : '--');
-  txt('m-mot-mode', driveMode  != null ? (DRIVE_MODES[driveMode] ?? 'Mode '+driveMode) : '--');
 
   // ── Range / cons / regen
-  txt('m-range',    d.range     != null ? Math.round(d.range)     : '--');
+  txt2('m-range', d.range != null ? Math.round(d.range) : '--');
   txt('m-rangemode', rangeByMode != null ? Math.round(rangeByMode) : '--');
   var net = disch - regen;
   var consPkm = (net > 0 && odo > 0) ? (net/BAT_CAP*100/odo) : null;
-  txt('m-cons', consPkm ? consPkm.toFixed(2) : '--');
-  txt('m-regen', charged > 0 ? (regen/charged*100).toFixed(1) : '--');
-  // mobile
-  txt('m-m-range', d.range != null ? Math.round(d.range) : '--');
-  txt('m-m-cons',  consPkm ? consPkm.toFixed(2) : '--');
-  txt('m-m-regen', charged > 0 ? (regen/charged*100).toFixed(1) : '--');
+  txt2('m-cons',  consPkm ? consPkm.toFixed(2) : '--');
+  txt2('m-regen', charged > 0 ? (regen/charged*100).toFixed(1) : '--');
 
   // ── Usage stats
   var trips = getTrips();
@@ -892,21 +874,14 @@ function updateBatteryUI(d, soc, voltage, current, charged, disch, regen){
   var arc = $('gauge-arc');
   var circ = 2*Math.PI*62, arcTotal = circ*270/360;
   var arcLen = ((soc/100)*arcTotal).toFixed(1)+' '+circ.toFixed(1);
-  if(arc) arc.setAttribute('stroke-dasharray', arcLen);
-  var marc = $('m-gauge-arc');
-  if(marc) marc.setAttribute('stroke-dasharray', arcLen);
+  ['gauge-arc','m-gauge-arc'].forEach(function(id){ var el=$(id); if(el) el.setAttribute('stroke-dasharray', arcLen); });
 
-  txt('g-pct',   Math.round(soc)+'%');
-  txt('m-g-pct', Math.round(soc)+'%');
-  txt('g-v',     voltage    ? voltage.toFixed(1)+' V' : '-- V');
-  txt('m-g-v',   voltage    ? voltage.toFixed(1)+' V' : '-- V');
-  txt('g-a',     current    ? current.toFixed(1)+' A' : '-- A');
-  txt('m-g-a',   current    ? current.toFixed(1)+' A' : '-- A');
-  txt('g-bmsa',  bmsCurrent != null ? bmsCurrent.toFixed(1)+' A' : '-- A');
-  txt('g-astra', astraSOC   != null ? Math.round(astraSOC)+'%'   : '--%');
-  var stateStr = d.charging ? '⚡ Charge' : (d.batteryOut ? '🔓 Retirée' : '✓ Normal');
-  txt('g-state', stateStr);
-  txt('m-g-state', stateStr);
+  txt2('g-pct',   Math.round(soc)+'%');
+  txt2('g-v',     voltage ? voltage.toFixed(1)+' V' : '-- V');
+  txt2('g-a',     current ? current.toFixed(1)+' A' : '-- A');
+  txt('g-bmsa',   bmsCurrent != null ? bmsCurrent.toFixed(1)+' A' : '-- A');
+  txt('g-astra',  astraSOC   != null ? Math.round(astraSOC)+'%'   : '--%');
+  txt2('g-state', d.charging ? '⚡ Charge' : (d.batteryOut ? '🔓 Retirée' : '✓ Normal'));
 
   txt('bh-v', voltage ? voltage.toFixed(0) : '--');
   if(charged > 0) txt('bh-cycles', (charged/BAT_CAP).toFixed(1));
@@ -1028,16 +1003,13 @@ function getTrips(){ try{ return JSON.parse(localStorage.getItem('scooter_trips'
 function renderLastTrip(t){
   $('lt-empty').style.display = 'none';
   $('lt-data').style.display  = 'block';
-  txt('lt-dist-big', t.dist+' km');
-  txt('lt-ago', timeAgo(t.ts));
+  txt2('lt-dist-big', t.dist+' km');
+  txt2('lt-ago', timeAgo(t.ts));
   txt('lt-dur',  t.dur+' min');
   txt('lt-dist', t.dist+' km');
   txt('lt-bat',  t.bat+' %');
   txt('lt-vavg', t.vavg+' km/h');
   txt('lt-vmax', t.vmax+' km/h');
-  // mobile
-  txt('m-lt-dist-big', t.dist+' km');
-  txt('m-lt-ago', timeAgo(t.ts));
 }
 
 function renderTripsTable(){
@@ -1104,6 +1076,7 @@ function renderCells(cells){
 // ─── HELPERS ─────────────────────────────────────────────────
 function $(id){ return document.getElementById(id); }
 function txt(id,v){ var el=$(id); if(el) el.textContent=v; }
+function txt2(id,v){ txt(id,v); txt('m-'+id,v); }
 function pad(n){ return n<10?'0'+n:''+n; }
 function hex4(n){ return '0x'+(n>>>0).toString(16).toUpperCase().padStart(4,'0'); }
 function setAlarmBadge(id,v){ var el=$(id); if(el) el.className='alarm-badge'+(v?' active':''); }
@@ -1153,7 +1126,23 @@ function goPage(n){
   }, {passive:true});
 })();
 
-(function(){ var trips=getTrips(); if(trips.length){ renderLastTrip(trips[0]); renderTripsTable(); } })();
+(function(){
+  var saved = localStorage.getItem('scooter_last');
+  if(saved){
+    try{
+      var obj = JSON.parse(saved);
+      if(obj.data && Object.keys(obj.data).length){
+        lastData = obj.data;
+        lastMsgTime = obj.time || null;
+        _dataFromCache = true;
+        update(lastData);
+      }
+    }catch(e){}
+  }
+  var trips = getTrips();
+  if(trips.length){ renderLastTrip(trips[0]); renderTripsTable(); }
+})();
+updateLastUpdate();
 setInterval(updateLastUpdate, 10000);
 </script>
 </body>
