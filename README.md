@@ -78,7 +78,8 @@ services:
 
   silence-server:
     build:
-      context: https://github.com/lorenzo-deluca/silence-private-server.git
+      context: https://github.com/Balou866/SilenceDashboard.git
+      dockerfile: silence/Dockerfile
     container_name: silence-server
     restart: unless-stopped
     environment:
