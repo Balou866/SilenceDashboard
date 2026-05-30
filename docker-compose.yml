@@ -28,7 +28,7 @@ services:
         sed "s/TON_IMEI/$$IMEI/g" /tmp/index.html > /dashboard-data/index.html
 
         wget -qO /dashboard-data/mqtt.min.js \
-          "https://cdn.jsdelivr.net/npm/mqtt@5.0.5/dist/mqtt.min.js"
+          "$$RAW/dashboard/mqtt.min.js"
 
         echo "Init done!"
 
