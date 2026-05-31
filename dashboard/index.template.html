@@ -426,9 +426,8 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
   </div>
   <div class="tariff-row">
     <span>Tarif électricité :</span>
-    <input type="number" id="tariff-input" min="0" max="9.999" step="0.001" value="0.215">
+    <input type="number" id="tariff-input" min="0" max="9.999" step="0.001" value="0.215" oninput="applyTariff()">
     <span>€/kWh</span>
-    <button onclick="applyTariff()" title="Appliquer">✓</button>
   </div>
 
   <!-- Recent trips -->
