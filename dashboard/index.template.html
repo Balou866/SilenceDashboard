@@ -136,6 +136,9 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 .c4cell{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px;text-align:center}
 .c4val{font-size:.95em;font-weight:700;color:var(--text)}
 .c4label{font-size:.58em;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
+.tariff-row{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:.72em;color:var(--muted)}
+.tariff-row input{width:62px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:2px 5px;font-size:1em;text-align:right}
+.tariff-row button{background:none;border:none;color:var(--accent,#4a9eff);cursor:pointer;font-size:1em;padding:0 2px}
 
 /* Trip table */
 .trips-table{width:100%;border-collapse:collapse;font-size:.8em}
@@ -315,7 +318,6 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
     <div class="bh-grid">
       <div><div class="bh-val" id="bh-cycles">--</div><div class="bh-label">Cycles</div></div>
       <div><div class="bh-val" id="bh-imb">--</div><div class="bh-label">Déséq. mV</div></div>
-      <div><div class="bh-val" id="bh-dev">--</div><div class="bh-label">Dév. SOC</div></div>
       <div><div class="bh-val" id="bh-v">--</div><div class="bh-label">Tension V</div></div>
     </div>
     <div style="margin-top:8px" class="bat-extra-row">
@@ -421,6 +423,12 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
     <div class="c4cell"><div class="c4val" id="c-w">--</div><div class="c4label">Semaine</div></div>
     <div class="c4cell"><div class="c4val" id="c-m">--</div><div class="c4label">Mois</div></div>
     <div class="c4cell"><div class="c4val" id="c-y">--</div><div class="c4label">Année</div></div>
+  </div>
+  <div class="tariff-row">
+    <span>Tarif électricité :</span>
+    <input type="number" id="tariff-input" min="0" max="9.999" step="0.001" value="0.215">
+    <span>€/kWh</span>
+    <button onclick="applyTariff()" title="Appliquer">✓</button>
   </div>
 
   <!-- Recent trips -->
@@ -631,12 +639,26 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 // ─── CONFIG ─────────────────────────────────────────────────
 var IMEI      = "TON_IMEI";
 var WS_PORT   = 9002;
-var TARIFF    = 0.215;   // €/kWh
+var TARIFF    = parseFloat(localStorage.getItem('tariff')) || 0.215; // €/kWh
 var BAT_CAP   = 5.6;     // kWh
 
 var DRIVE_MODES = {0:'Eco', 1:'City', 2:'Sport'};
 var STATUS      = {0:'Éteint',1:'Veille',2:'Démarrage',3:'Prêt',4:'En route',5:'En charge',6:'Sans batterie'};
 var SCLS        = {0:'s0',1:'s0',2:'s2',3:'s3',4:'s4',5:'s5',6:'s6'};
+
+// ─── TARIFF ──────────────────────────────────────────────────
+(function(){
+  var el = document.getElementById('tariff-input');
+  if(el) el.value = TARIFF.toFixed(3);
+})();
+function applyTariff(){
+  var el = document.getElementById('tariff-input');
+  var v = parseFloat(el.value);
+  if(isNaN(v) || v <= 0) return;
+  TARIFF = v;
+  localStorage.setItem('tariff', v);
+  if(lastData && Object.keys(lastData).length) update(lastData);
+}
 
 // ─── NIGHT MODE ─────────────────────────────────────────────
 (function(){
@@ -883,7 +905,6 @@ function updateBatteryUI(d, soc, voltage, current, charged, disch, regen){
 
   txt('bh-v', voltage ? voltage.toFixed(0) : '--');
   if(charged > 0) txt('bh-cycles', (charged/BAT_CAP).toFixed(1));
-  txt('bh-dev', '0.0%');
   txt('bh-flags', bmsFlags != null ? hex4(bmsFlags) : '--');
 
   var cells = [];
