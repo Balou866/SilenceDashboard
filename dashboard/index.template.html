@@ -31,8 +31,6 @@ header{background:var(--blue);height:48px;display:flex;align-items:center;paddin
 #night-btn{background:none;border:none;color:#fff;font-size:1.1em;cursor:pointer;padding:4px 6px;opacity:.7;margin-left:6px;border-radius:6px;transition:opacity .2s}
 #night-btn:hover{opacity:1}
 
-/* ── SOC BAR ── */
-#soc-bar{position:sticky;top:48px;z-index:19;height:4px;width:0%;background:var(--soc-color);transition:width .5s,background .5s}
 
 /* ── MAIN GRID ── */
 main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;gap:14px;padding:14px;align-items:start}
@@ -232,8 +230,6 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
   </div>
 </header>
 
-<!-- SOC bar -->
-<div id="soc-bar"></div>
 
 <!-- ══════════ DESKTOP LAYOUT ══════════ -->
 <main>
@@ -454,7 +450,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 
   <!-- Map -->
   <div class="map-card">
-    <iframe id="map-iframe" allowfullscreen></iframe>
+    <iframe id="map-iframe" allowfullscreen style="display:none"></iframe>
     <div class="map-placeholder" id="map-placeholder">
       <span>🗺️</span>
       <span>En attente du GPS…</span>
@@ -662,13 +658,6 @@ function applySocColor(soc){
   document.documentElement.style.setProperty('--soc-color', color);
 }
 
-// ─── SOC BAR ────────────────────────────────────────────────
-function updateSocBar(soc){
-  var bar = document.getElementById('soc-bar');
-  if(!bar) return;
-  bar.style.width = soc + '%';
-  bar.style.background = getSocColor(soc);
-}
 
 // ─── FAVICON SOC ────────────────────────────────────────────
 var _favCanvas = null;
@@ -727,12 +716,17 @@ client.on('message', function(t, m){
       var raw = m.toString();
       var val = (raw === 'None' || raw === 'null' || raw === '') ? null : (isNaN(Number(raw)) ? raw : Number(raw));
       lastData[lastPart] = val;
-      lastMsgTime = Date.now();
+      if(lastPart === 'dataTimestamp' && val !== null){
+        lastMsgTime = val;
+        return;
+      }
+      if(!lastData.dataTimestamp) lastMsgTime = Date.now();
       update(lastData);
     } else {
       // old format: home/silence-server/<IMEI>/status → JSON payload
-      update(JSON.parse(m.toString()));
-      lastMsgTime = Date.now();
+      var parsed = JSON.parse(m.toString());
+      lastMsgTime = parsed.dataTimestamp || Date.now();
+      update(parsed);
     }
     _dataFromCache = false;
     scheduleSave();
@@ -817,9 +811,8 @@ function update(d){
 
   if(vin) txt('vin-lbl', 'VIN: '+vin);
 
-  // ── SOC color + bar + favicon
+  // ── SOC color + favicon
   applySocColor(soc);
-  updateSocBar(soc);
   updateFavicon(soc);
 
   // ── Status pill
