@@ -75,7 +75,7 @@ services:
       - mosquitto-data:/mosquitto/data
     healthcheck:
       test: ["CMD", "mosquitto_pub", "-t", "health", "-m", "1", "-q", "0"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
 
