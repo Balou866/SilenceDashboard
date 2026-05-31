@@ -657,7 +657,7 @@ function applyTariff(){
   if(isNaN(v) || v <= 0) return;
   TARIFF = v;
   localStorage.setItem('tariff', v);
-  if(lastData && Object.keys(lastData).length) update(lastData);
+  updateCosts(lastConsPkm, lastOdo);
 }
 
 // ─── NIGHT MODE ─────────────────────────────────────────────
@@ -713,7 +713,7 @@ function updateFavicon(soc){
 
 // ─── MQTT ────────────────────────────────────────────────────
 var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
-var lastData = {}, lastMsgTime = null, _dataFromCache = false, _saveTimer = null;
+var lastData = {}, lastMsgTime = null, _dataFromCache = false, _saveTimer = null, lastConsPkm = null, lastOdo = 0;
 function scheduleSave(){
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function(){
@@ -866,8 +866,9 @@ function update(d){
   txt2('m-range', d.range != null ? Math.round(d.range) : '--');
   txt('m-rangemode', rangeByMode != null ? Math.round(rangeByMode) : '--');
   var net = disch - regen;
-  var consPkm = (net > 0 && odo > 0) ? (net/BAT_CAP*100/odo) : null;
-  txt2('m-cons',  consPkm ? consPkm.toFixed(2) : '--');
+  lastConsPkm = (net > 0 && odo > 0) ? (net/BAT_CAP*100/odo) : null;
+  lastOdo = odo;
+  txt2('m-cons',  lastConsPkm ? lastConsPkm.toFixed(2) : '--');
   txt2('m-regen', charged > 0 ? (regen/charged*100).toFixed(1) : '--');
 
   // ── Usage stats
@@ -880,7 +881,7 @@ function update(d){
   }
 
   updateBatteryUI(d, soc, voltage, current, charged, disch, regen);
-  updateCosts(consPkm, odo);
+  updateCosts(lastConsPkm, lastOdo);
   updateGPS(d);
 
   trackTrip(d, speed, soc, odo);
