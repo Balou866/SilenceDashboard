@@ -713,7 +713,7 @@ function updateFavicon(soc){
 // ─── MQTT ────────────────────────────────────────────────────
 var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
 var lastData = {}, lastMsgTime = null, _dataFromCache = false, _saveTimer = null, lastConsPkm = null, lastOdo = 0;
-var _serverTrips = [];
+var _serverTrips = [], _lastGpsTime = null;
 function scheduleSave(){
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function(){
@@ -942,6 +942,9 @@ function updateCosts(consPkm, odo){
 function updateGPS(d){
   if(!d.latitude || !d.longitude) return;
   var lat=parseFloat(d.latitude), lon=parseFloat(d.longitude);
+  _lastGpsTime = lastMsgTime || Date.now();
+  var timeStr = new Date(_lastGpsTime).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var coordText = '📍 '+lat.toFixed(5)+', '+lon.toFixed(5)+' ('+timeStr+') — Ouvrir Maps';
   // desktop
   var iframe = document.getElementById('map-iframe');
   if(iframe && iframe.style.display==='none'){
@@ -951,7 +954,7 @@ function updateGPS(d){
     if(ph) ph.style.display = 'none';
   }
   var gl = $('gps-link-out');
-  if(gl){ gl.href='https://www.google.com/maps?q='+lat+','+lon; gl.textContent='📍 '+lat.toFixed(5)+', '+lon.toFixed(5)+' — Ouvrir Maps'; }
+  if(gl){ gl.href='https://www.google.com/maps?q='+lat+','+lon; gl.textContent=coordText; }
   // mobile
   var mIframe = $('m-map-iframe');
   if(mIframe && mIframe.style.display==='none'){
@@ -960,7 +963,7 @@ function updateGPS(d){
     var mph = $('m-map-placeholder'); if(mph) mph.style.display='none';
   }
   var mgl = $('m-gps-link-out');
-  if(mgl){ mgl.href='https://www.google.com/maps?q='+lat+','+lon; mgl.textContent='📍 '+lat.toFixed(5)+', '+lon.toFixed(5)+' — Ouvrir Maps'; }
+  if(mgl){ mgl.href='https://www.google.com/maps?q='+lat+','+lon; mgl.textContent=coordText; }
 }
 
 // ─── TRIP TRACKING ───────────────────────────────────────────
