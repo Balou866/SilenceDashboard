@@ -9,31 +9,58 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg1:#0d0d20;--bg2:#141430;--bg3:#0f1535;
-  --card:rgba(255,255,255,.07);--border:rgba(255,255,255,.12);
-  --text:#fff;--muted:rgba(255,255,255,.45);--muted2:rgba(255,255,255,.25);
+  --card:rgba(255,255,255,.09);--border:rgba(255,255,255,.16);
+  --text:#fff;--muted:rgba(255,255,255,.5);--muted2:rgba(255,255,255,.28);
   --teal:#00d4aa;--blue:#1565c0;
   --green:#4caf50;--yellow:#ff9800;--red:#f44336;--purple:#7c4dff;
   --soc-color:#4caf50;
+  --shadow:0 8px 30px rgba(0,0,0,.28);
+  /* default theme = aurora (Bleu→Violet→Magenta) */
+  --page-bg:
+    radial-gradient(ellipse 80% 60% at 75% 85%, rgba(200,40,120,.35), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 15% 10%, rgba(40,90,200,.30), transparent 55%),
+    linear-gradient(135deg, #14143a 0%, #2a1d52 40%, #4a2060 70%, #5e2050 100%);
+  --hdr-tint:rgba(20,20,58,.55);
 }
-html,body{height:100%;background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 55%,var(--bg3) 100%);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
 
-/* ── NIGHT MODE ── */
-body.night{--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.08)}
-body.night .gauge-pct,body.night .s3val,body.night .usage-val{opacity:.85}
+/* ── THEMES ── */
+body[data-theme="indigo"]{
+  --page-bg:
+    radial-gradient(ellipse 75% 55% at 80% 90%, rgba(150,50,140,.25), transparent 60%),
+    linear-gradient(135deg, #12122e 0%, #241a48 45%, #3a2356 75%, #432a5a 100%);
+  --hdr-tint:rgba(18,18,46,.55);
+  --card:rgba(255,255,255,.08);--border:rgba(255,255,255,.14);
+}
+body[data-theme="teal"]{
+  --page-bg:
+    radial-gradient(ellipse 80% 60% at 78% 88%, rgba(190,40,130,.32), transparent 60%),
+    radial-gradient(ellipse 60% 45% at 12% 8%, rgba(0,180,170,.18), transparent 55%),
+    linear-gradient(135deg, #0d1f33 0%, #1a2150 38%, #3a1f5c 72%, #561f50 100%);
+  --hdr-tint:rgba(13,31,51,.55);
+}
+
+html,body{height:100%;color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+body{background:var(--page-bg);background-attachment:fixed;background-size:cover}
 
 /* ── HEADER ── */
-header{background:var(--blue);height:48px;display:flex;align-items:center;padding:0 18px;font-size:1em;font-weight:600;letter-spacing:.5px;position:sticky;top:0;z-index:20;box-shadow:0 2px 12px rgba(0,0,0,.4)}
-#hdr-conn{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:.78em;font-weight:400;opacity:.85}
+header{background:var(--hdr-tint);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);height:52px;display:flex;align-items:center;padding:0 18px;font-size:1em;font-weight:600;letter-spacing:.5px;position:sticky;top:0;z-index:20;box-shadow:0 1px 0 rgba(255,255,255,.06),0 4px 20px rgba(0,0,0,.35);border-bottom:1px solid rgba(255,255,255,.07)}
+#hdr-conn{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:.78em;font-weight:400;opacity:.9}
 .hdot{width:8px;height:8px;border-radius:50%;background:var(--red);transition:background .3s}
-.hdot.ok{background:var(--green)}
-#vin-lbl{font-size:.65em;font-weight:400;opacity:.45;margin-left:10px;letter-spacing:.3px}
-#night-btn{background:none;border:none;color:#fff;font-size:1.1em;cursor:pointer;padding:4px 6px;opacity:.7;margin-left:6px;border-radius:6px;transition:opacity .2s}
-#night-btn:hover{opacity:1}
+.hdot.ok{background:var(--green);box-shadow:0 0 8px var(--green)}
+#vin-lbl{font-size:.65em;font-weight:400;opacity:.5;margin-left:10px;letter-spacing:.3px}
+/* ── THEME PICKER ── */
+#theme-picker{display:flex;align-items:center;gap:6px;margin-left:10px}
+.theme-swatch{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.35);cursor:pointer;padding:0;transition:transform .15s,border-color .15s;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.theme-swatch:hover{transform:scale(1.15)}
+.theme-swatch.active{border-color:#fff;transform:scale(1.15)}
+.sw-aurora{background:linear-gradient(135deg,#2a4bd0,#7c2db0,#c8286f)}
+.sw-indigo{background:linear-gradient(135deg,#241a48,#3a2356,#963c8c)}
+.sw-teal{background:linear-gradient(135deg,#00b4aa,#1a2150,#be2882)}
 
 
 /* ── MAIN GRID ── */
-main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;gap:14px;padding:14px;align-items:start}
+main{position:relative;z-index:1;display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;gap:14px;padding:14px;align-items:start}
+.mobile-pages{position:relative;z-index:1}
 @media(max-width:1100px){main{grid-template-columns:1fr 1fr}}
 
 /* ── MOBILE PAGES ── */
@@ -51,7 +78,10 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 }
 
 /* ── CARDS ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;backdrop-filter:blur(8px)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:var(--shadow)}
+/* États vides : atténue les blocs sans données live (scooter éteint) */
+.card,.stats4,.cost4{transition:opacity .4s ease,filter .4s ease}
+.dimmed{opacity:.38;filter:grayscale(.45);pointer-events:none}
 .card-title{font-size:.68em;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .card-title svg{opacity:.6}
 .sep{border:none;border-top:1px solid var(--border);margin:10px 0}
@@ -80,6 +110,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 .scooter-area{background:var(--card);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:10px;position:relative;overflow:hidden}
 .scooter-area::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,212,170,.08) 0%,transparent 70%)}
 .scooter-emoji{font-size:5em;line-height:1;filter:drop-shadow(0 0 20px rgba(0,212,170,.3))}
+.scooter-img{width:100%;display:block;max-height:200px;object-fit:contain;position:relative;filter:drop-shadow(0 8px 20px rgba(0,0,0,.55))}
 .scooter-status-pill{padding:4px 16px;border-radius:20px;font-size:.78em;font-weight:700;background:rgba(255,255,255,.1);border:1px solid var(--border);transition:background .3s,color .3s}
 .s0{background:rgba(100,100,100,.3);color:#aaa}
 .s2{background:rgba(255,152,0,.2);color:#ff9800;border-color:#ff9800}
@@ -203,6 +234,13 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 .temp-val{font-size:.88em;font-weight:700}
 .tc{color:var(--green)}.tw{color:var(--yellow)}.th{color:var(--red)}
 
+/* Sparklines */
+.spark{width:100%;height:38px;display:block;margin:3px 0 6px;overflow:visible}
+.spark-legend{display:flex;gap:12px;font-size:.62em;color:var(--muted);margin:2px 0 1px}
+.spark-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.spark-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.spark-lbl{font-size:.6em;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px}
+
 /* Collapsible details */
 #det-toggle{background:none;border:none;color:var(--teal);font-size:.78em;cursor:pointer;padding:4px 0;text-align:left;display:flex;align-items:center;gap:4px}
 #det-toggle::before{content:'▸';transition:transform .2s}
@@ -216,7 +254,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
     position:fixed;bottom:0;left:0;right:0;z-index:100;
     border-radius:14px 14px 0 0;padding:12px 16px;
     transform:translateY(0);transition:transform .3s ease;
-    background:var(--bg2);border:1px solid var(--border)
+    background:#1b1336;border:1px solid var(--border)
   }
 }
 
@@ -229,7 +267,11 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
   <div id="hdr-conn">
     <div class="hdot" id="hdot"></div>
     <span id="hlbl">Connexion…</span>
-    <button id="night-btn" onclick="toggleNight()" title="Mode nuit">🌙</button>
+    <div id="theme-picker">
+      <button class="theme-swatch sw-aurora" data-theme="aurora" onclick="setTheme('aurora')" title="Aurora — Bleu→Violet→Magenta"></button>
+      <button class="theme-swatch sw-indigo" data-theme="indigo" onclick="setTheme('indigo')" title="Indigo — Pourpre sobre"></button>
+      <button class="theme-swatch sw-teal" data-theme="teal" onclick="setTheme('teal')" title="Teal — Teal→Bleu→Magenta"></button>
+    </div>
   </div>
 </header>
 
@@ -268,7 +310,8 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
 
   <!-- Scooter visual -->
   <div class="scooter-area">
-    <div class="scooter-emoji">🛵</div>
+    <img class="scooter-img" src="rambo-silence.png" alt="Scooter Silence"
+         onerror="this.outerHTML='&lt;div class=&quot;scooter-emoji&quot;&gt;🛵&lt;/div&gt;'">
     <div class="scooter-status-pill s0" id="st-pill">Éteint</div>
     <div class="alarm-badges">
       <span class="alarm-badge" id="ad-mv">
@@ -343,6 +386,26 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
       <div class="temp-row"><span class="temp-name">🔋 NTC 2</span><span class="temp-val tc" id="dt-ntc2">--°C</span></div>
       <div class="temp-row"><span class="temp-name">🔋 NTC 3</span><span class="temp-val tc" id="dt-ntc3">--°C</span></div>
       <hr class="sep">
+      <div class="card-title">Historique températures</div>
+      <div class="spark-legend">
+        <span><i style="background:#f44336"></i>Moteur</span>
+        <span><i style="background:#ff9800"></i>Onduleur</span>
+        <span><i style="background:#00d4aa"></i>Batterie</span>
+      </div>
+      <svg class="spark" id="spark-temp" viewBox="0 0 100 32" preserveAspectRatio="none"></svg>
+      <hr class="sep">
+      <div class="card-title">Historique électrique</div>
+      <div class="spark-row">
+        <div>
+          <div class="spark-lbl">Tension</div>
+          <svg class="spark" id="spark-volt" viewBox="0 0 100 32" preserveAspectRatio="none"></svg>
+        </div>
+        <div>
+          <div class="spark-lbl">Courant</div>
+          <svg class="spark" id="spark-curr" viewBox="0 0 100 32" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+      <hr class="sep">
       <div class="card-title">Énergie cumulée</div>
       <div class="temp-row"><span class="temp-name">⚡ Chargé</span><span class="temp-val" id="dt-chr" style="color:var(--text)">-- kWh</span></div>
       <div class="temp-row"><span class="temp-name">🔻 Déchargé</span><span class="temp-val" id="dt-dis" style="color:var(--text)">-- kWh</span></div>
@@ -374,7 +437,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
           <circle cx="80" cy="80" r="62" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"
                   stroke-dasharray="292 390" stroke-linecap="round"
                   transform="rotate(135 80 80)"/>
-          <circle cx="80" cy="80" r="62" fill="none" stroke="var(--soc-color)" stroke-width="10"
+          <circle cx="80" cy="80" r="62" fill="none" stroke="url(#gGrad)" stroke-width="10"
                   stroke-dasharray="0 390" stroke-linecap="round"
                   transform="rotate(135 80 80)" id="gauge-arc"/>
         </svg>
@@ -397,7 +460,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
   </div>
 
   <!-- Motor -->
-  <div class="card">
+  <div class="card" id="mot-card">
     <div class="card-title">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
       Moteur
@@ -414,7 +477,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
   </div>
 
   <!-- Range / Cons / Regen / RangeByMode -->
-  <div class="stats4">
+  <div class="stats4" id="range-row">
     <div class="s3cell"><div class="s3val" id="m-range">--</div><div class="s3label">Autonomie km</div></div>
     <div class="s3cell"><div class="s3val" id="m-rangemode">--</div><div class="s3label">Auton./mode</div></div>
     <div class="s3cell"><div class="s3val" id="m-cons">--</div><div class="s3label">Cons. %/km</div></div>
@@ -422,7 +485,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
   </div>
 
   <!-- Cost row -->
-  <div class="cost4">
+  <div class="cost4" id="cost-row">
     <div class="c4cell"><div class="c4val" id="c-km">--</div><div class="c4label">€/km</div></div>
     <div class="c4cell"><div class="c4val" id="c-w">--</div><div class="c4label">Semaine</div></div>
     <div class="c4cell"><div class="c4val" id="c-m">--</div><div class="c4label">Mois</div></div>
@@ -545,7 +608,8 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
         <button class="btn btn-off" id="m-btn-off" onclick="confirmCmd(this,'TURN_OFF_SCOOTER','⏹ Éteindre')">⏹ Éteindre</button>
       </div>
       <div class="scooter-area">
-        <div class="scooter-emoji">🛵</div>
+        <img class="scooter-img" src="rambo-silence.png" alt="Scooter Silence"
+         onerror="this.outerHTML='&lt;div class=&quot;scooter-emoji&quot;&gt;🛵&lt;/div&gt;'">
         <div class="scooter-status-pill s0" id="m-st-pill">Éteint</div>
         <div class="alarm-badges">
           <span class="alarm-badge" id="m-ad-mv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Mvt</span>
@@ -572,7 +636,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
             <svg viewBox="0 0 160 160">
               <circle cx="80" cy="80" r="62" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"
                       stroke-dasharray="292 390" stroke-linecap="round" transform="rotate(135 80 80)"/>
-              <circle cx="80" cy="80" r="62" fill="none" stroke="var(--soc-color)" stroke-width="10"
+              <circle cx="80" cy="80" r="62" fill="none" stroke="url(#gGrad)" stroke-width="10"
                       stroke-dasharray="0 390" stroke-linecap="round" transform="rotate(135 80 80)" id="m-gauge-arc"/>
             </svg>
             <div class="gauge-center">
@@ -590,7 +654,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
           </div>
         </div>
       </div>
-      <div class="card">
+      <div class="card" id="m-mot-card">
         <div class="card-title">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
           Moteur
@@ -601,7 +665,7 @@ main{display:grid;grid-template-columns:300px 1fr 330px;grid-template-rows:auto;
           <div class="s3cell"><div class="s3val" id="m-mot-bus">--</div><div class="s3label">Bus V</div></div>
         </div>
       </div>
-      <div class="stats4">
+      <div class="stats4" id="m-range-row">
         <div class="s3cell"><div class="s3val" id="m-m-range">--</div><div class="s3label">Autonomie km</div></div>
         <div class="s3cell"><div class="s3val" id="m-m-cons">--</div><div class="s3label">Cons. %/km</div></div>
         <div class="s3cell"><div class="s3val" id="m-m-regen">--</div><div class="s3label">Regen. %</div></div>
@@ -667,14 +731,17 @@ function applyTariff(){
   updateCosts(lastConsPkm, lastOdo);
 }
 
-// ─── NIGHT MODE ─────────────────────────────────────────────
-(function(){
-  if(localStorage.getItem('nightMode') === '1') document.body.classList.add('night');
-})();
-function toggleNight(){
-  document.body.classList.toggle('night');
-  localStorage.setItem('nightMode', document.body.classList.contains('night') ? '1' : '0');
+// ─── THEME ──────────────────────────────────────────────────
+var THEMES = ['aurora','indigo','teal'];
+function setTheme(name){
+  if(THEMES.indexOf(name) < 0) name = 'aurora';
+  document.body.dataset.theme = name;
+  localStorage.setItem('theme', name);
+  document.querySelectorAll('.theme-swatch').forEach(function(b){
+    b.classList.toggle('active', b.dataset.theme === name);
+  });
 }
+setTheme(localStorage.getItem('theme') || 'aurora');
 
 // ─── SOC COLOR ──────────────────────────────────────────────
 function getSocColor(soc){
@@ -687,6 +754,59 @@ function applySocColor(soc){
   document.documentElement.style.setProperty('--soc-color', color);
 }
 
+
+// ─── SPARKLINES ─────────────────────────────────────────────
+var HIST_MAX = 60;
+var hist = { motTemp:[], invTemp:[], batTemp:[], volt:[], curr:[] };
+function pushHist(key, v){
+  if(v == null || isNaN(v)) return;
+  var a = hist[key];
+  a.push(Number(v));
+  if(a.length > HIST_MAX) a.shift();
+}
+function sparkPath(arr, w, h, pad, mn, mx){
+  if(!arr || arr.length < 2) return '';
+  if(mn == null){ mn = Math.min.apply(null, arr); mx = Math.max.apply(null, arr); }
+  var rng = (mx - mn) || 1, n = arr.length;
+  return 'M' + arr.map(function(v, i){
+    var x = (i/(n-1))*w;
+    var y = h - pad - ((v-mn)/rng)*(h - 2*pad);
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' L');
+}
+function renderArea(id, arr, color){
+  var el = $(id); if(!el) return;
+  if(!arr || arr.length < 2){ el.innerHTML = ''; return; }
+  var d = sparkPath(arr, 100, 32, 3);
+  var gid = id + '-g';
+  el.innerHTML =
+    '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'+
+      '<stop offset="0%" stop-color="'+color+'" stop-opacity="0.45"/>'+
+      '<stop offset="100%" stop-color="'+color+'" stop-opacity="0"/></linearGradient></defs>'+
+    '<path d="'+d+' L100,32 L0,32 Z" fill="url(#'+gid+')"/>'+
+    '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>';
+}
+function renderSparks(){
+  // températures combinées (échelle Y partagée)
+  var series = [['motTemp','#f44336'],['invTemp','#ff9800'],['batTemp','#00d4aa']];
+  var all = [];
+  series.forEach(function(s){ all = all.concat(hist[s[0]]); });
+  var el = $('spark-temp');
+  if(el){
+    if(all.length < 2){ el.innerHTML = ''; }
+    else{
+      var mn = Math.min.apply(null, all), mx = Math.max.apply(null, all);
+      var html = '';
+      series.forEach(function(s){
+        var d = sparkPath(hist[s[0]], 100, 32, 3, mn, mx);
+        if(d) html += '<path d="'+d+'" fill="none" stroke="'+s[1]+'" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>';
+      });
+      el.innerHTML = html;
+    }
+  }
+  renderArea('spark-volt', hist.volt, '#7c4dff');
+  renderArea('spark-curr', hist.curr, '#00d4aa');
+}
 
 // ─── FAVICON SOC ────────────────────────────────────────────
 var _favCanvas = null;
@@ -878,6 +998,13 @@ function update(d){
   lastOdo = odo;
   txt2('m-cons',  lastConsPkm ? lastConsPkm.toFixed(2) : '--');
   txt2('m-regen', charged > 0 ? (regen/charged*100).toFixed(1) : '--');
+
+  // ── États vides : atténue les blocs sans données live (scooter éteint)
+  var motorActive = motorRPM != null || motorPower != null || busVoltage != null;
+  setDim('mot-card', !motorActive);  setDim('m-mot-card', !motorActive);
+  var rangeActive = d.range != null || rangeByMode != null || lastConsPkm != null;
+  setDim('range-row', !rangeActive); setDim('m-range-row', !rangeActive);
+  setDim('cost-row', lastConsPkm == null);
 
   // ── Usage stats
   var trips = getTrips();
@@ -1116,6 +1243,7 @@ function txt2(id,v){ txt(id,v); txt('m-'+id,v); }
 function pad(n){ return n<10?'0'+n:''+n; }
 function hex4(n){ return '0x'+(n>>>0).toString(16).toUpperCase().padStart(4,'0'); }
 function setAlarmBadge(id,v){ var el=$(id); if(el) el.className='alarm-badge'+(v?' active':''); }
+function setDim(id,on){ var el=$(id); if(el) el.classList.toggle('dimmed', !!on); }
 function setTemp(id,v,warn){
   var el=$(id); if(!el) return;
   if(v==null){el.textContent='--°C';el.className='temp-val tc';return;}
@@ -1179,6 +1307,19 @@ function goPage(n){
 })();
 updateLastUpdate();
 setInterval(updateLastUpdate, 10000);
+
+// ─── SPARKLINE SAMPLING (cadence fixe, indépendante du débit MQTT) ──
+function sampleSparks(){
+  if(!lastData) return;
+  pushHist('motTemp', lastData.motorTemp);
+  pushHist('invTemp', lastData.inverterTemp);
+  pushHist('batTemp', lastData.BatteryTempMax);
+  pushHist('volt',    lastData.VOLTbatteria);
+  pushHist('curr',    lastData.batteryCurrent);
+  renderSparks();
+}
+sampleSparks();
+setInterval(sampleSparks, 10000);
 </script>
 </body>
 </html>

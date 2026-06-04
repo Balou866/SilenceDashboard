@@ -31,7 +31,7 @@ Scooter ──TCP 38955──► silence-server ──MQTT 1883──► mosquit
 - `mosquitto-config` — `mosquitto.conf` (toujours réécrit par init)
 - `mosquitto-data` — persistance MQTT
 - `silence-config` — `configuration.json` avec IMEI injecté (toujours réécrit par init)
-- `dashboard-data` — `index.html` généré depuis le template (toujours réécrit par init)
+- `dashboard-data` — `index.html` généré depuis le template + assets statiques `mqtt.min.js` et `rambo-silence.png` (téléchargés par init depuis le repo)
 
 ## Fichiers clés
 
@@ -44,7 +44,8 @@ Scooter ──TCP 38955──► silence-server ──MQTT 1883──► mosquit
 | `silence/helpers/messageParser.py` | Parser des trames scooter (protocole Z, `$RCAN`, `$STMS`) |
 | `silence/helpers/commands_definition.json` | Override des commandes TCP (ajoute `SYNC` → `$STMS`) |
 | `silence/services/CommandService.py` | Override : corrige bug upstream `NameError: name 'imei'` (→ `self.IMEI`) qui crashait le thread après chaque commande |
-| `dashboard/index.template.html` | Interface HTML, placeholder `TON_IMEI` dans `var IMEI` |
+| `dashboard/index.template.html` | Interface HTML, placeholder `TON_IMEI` dans `var IMEI`. Sélecteur de thème (aurora/indigo/teal) persistant via `localStorage`. Sparklines SVG maison (buffer client échantillonné 10s) pour temp/élec dans les diagnostics |
+| `dashboard/rambo-silence.png` | Visuel du scooter (PNG détouré rembg/isnet, fond transparent) affiché dans `.scooter-area` (fallback emoji 🛵 si absent) |
 
 ## Configuration
 

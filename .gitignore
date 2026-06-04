@@ -1,4 +1,4 @@
 .env
 _ssh_check.py
 _ssh_check2.py
-.gitignore
+/temp

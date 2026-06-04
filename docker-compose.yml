@@ -30,6 +30,9 @@ services:
         wget -qO /dashboard-data/mqtt.min.js \
           "$$RAW/dashboard/mqtt.min.js"
 
+        wget -qO /dashboard-data/rambo-silence.png \
+          "$$RAW/dashboard/rambo-silence.png"
+
         echo "Init done!"
 
   mosquitto:
