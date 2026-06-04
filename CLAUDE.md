@@ -40,6 +40,9 @@ Scooter ──TCP 38955──► silence-server ──MQTT 1883──► mosquit
 | `docker-compose.yml` | Stack complète — seul fichier à coller dans Portainer |
 | `mosquitto/mosquitto.conf` | Listeners MQTT (1883) et WebSocket (9001) |
 | `silence/configuration.template.json` | Config silence-server, placeholder `TON_IMEI` dans `IMEI_List` (tableau) |
+| `silence/Dockerfile` | Build silence-server depuis l'upstream + override `messageParser.py` et `commands_definition.json` |
+| `silence/helpers/messageParser.py` | Parser des trames scooter (protocole Z, `$RCAN`, `$STMS`) |
+| `silence/helpers/commands_definition.json` | Override des commandes TCP (ajoute `SYNC` → `$STMS`) |
 | `dashboard/index.template.html` | Interface HTML, placeholder `TON_IMEI` dans `var IMEI` |
 
 ## Configuration
@@ -75,4 +78,8 @@ docker logs -f silence-server
 
 - Télémétrie : `home/silence-server/<IMEI>/status` (JSON)
 - Commandes : `home/silence-server/<IMEI>/command/<CMD>`
-- Commandes disponibles : `TURN_ON_SCOOTER`, `TURN_OFF_SCOOTER`, `OPEN_SEAT`, `FLASH`, `BEEP_FLASH`
+- Commandes disponibles : `TURN_ON_SCOOTER`, `TURN_OFF_SCOOTER`, `OPEN_SEAT`, `FLASH`, `BEEP_FLASH`, `SYNC`
+- `SYNC` envoie `$STMS\r\n` au scooter → snapshot complet immédiat. Réponse `$STMS,...`
+  (protocole Astra) décodée par `_parse_stms()` dans `silence/helpers/messageParser.py`.
+  Bouton « 🔄 Sync » dans le dashboard. Commande définie dans
+  `silence/helpers/commands_definition.json` (override copié dans l'image via `silence/Dockerfile`).

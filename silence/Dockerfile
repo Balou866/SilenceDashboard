@@ -8,5 +8,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && \
     pip install --no-cache-dir -r requirements.txt
 
 COPY silence/helpers/messageParser.py helpers/messageParser.py
+COPY silence/helpers/commands_definition.json helpers/commands_definition.json
 
 CMD ["python", "silence-server.py"]
