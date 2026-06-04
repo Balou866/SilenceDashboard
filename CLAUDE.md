@@ -40,9 +40,10 @@ Scooter ──TCP 38955──► silence-server ──MQTT 1883──► mosquit
 | `docker-compose.yml` | Stack complète — seul fichier à coller dans Portainer |
 | `mosquitto/mosquitto.conf` | Listeners MQTT (1883) et WebSocket (9001) |
 | `silence/configuration.template.json` | Config silence-server, placeholder `TON_IMEI` dans `IMEI_List` (tableau) |
-| `silence/Dockerfile` | Build silence-server depuis l'upstream + override `messageParser.py` et `commands_definition.json` |
+| `silence/Dockerfile` | Build silence-server depuis l'upstream + override `messageParser.py`, `commands_definition.json`, `CommandService.py` |
 | `silence/helpers/messageParser.py` | Parser des trames scooter (protocole Z, `$RCAN`, `$STMS`) |
 | `silence/helpers/commands_definition.json` | Override des commandes TCP (ajoute `SYNC` → `$STMS`) |
+| `silence/services/CommandService.py` | Override : corrige bug upstream `NameError: name 'imei'` (→ `self.IMEI`) qui crashait le thread après chaque commande |
 | `dashboard/index.template.html` | Interface HTML, placeholder `TON_IMEI` dans `var IMEI` |
 
 ## Configuration
