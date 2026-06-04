@@ -713,6 +713,7 @@ function updateFavicon(soc){
 // ─── MQTT ────────────────────────────────────────────────────
 var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
 var lastData = {}, lastMsgTime = null, _dataFromCache = false, _saveTimer = null, lastConsPkm = null, lastOdo = 0;
+var _serverTrips = [];
 function scheduleSave(){
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function(){
@@ -1003,7 +1004,8 @@ function trackTrip(d, speed, soc, odo){
       vmax: Math.round(trip.maxSpeed),
       vavg: avg
     };
-    saveTrip(t); renderLastTrip(t);
+    renderLastTrip(t);
+    setTimeout(fetchTrips, 1500);
     trip = null; tripSpeeds = [];
     var card = $('trip-live-card');
     card.style.display = 'none';
@@ -1011,14 +1013,17 @@ function trackTrip(d, speed, soc, odo){
   }
 }
 
-function saveTrip(t){
-  var trips = getTrips();
-  trips.unshift(t);
-  if(trips.length > 20) trips = trips.slice(0,20);
-  localStorage.setItem('scooter_trips', JSON.stringify(trips));
-  renderTripsTable();
+function getTrips(){ return _serverTrips; }
+function fetchTrips(){
+  fetch('/data/trips.json')
+    .then(function(r){ return r.ok ? r.json() : {}; })
+    .then(function(data){
+      _serverTrips = (data && data[IMEI]) ? data[IMEI] : [];
+      if(_serverTrips.length){ renderLastTrip(_serverTrips[0]); }
+      renderTripsTable();
+    })
+    .catch(function(){});
 }
-function getTrips(){ try{ return JSON.parse(localStorage.getItem('scooter_trips'))||[]; }catch(e){ return []; } }
 
 function renderLastTrip(t){
   $('lt-empty').style.display = 'none';
@@ -1147,7 +1152,6 @@ function goPage(n){
 })();
 
 (function(){
-  var restored = false;
   var saved = localStorage.getItem('scooter_last');
   if(saved){
     try{
@@ -1157,15 +1161,10 @@ function goPage(n){
         lastMsgTime = obj.time || null;
         _dataFromCache = true;
         update(lastData);
-        renderTripsTable();
-        restored = true;
       }
     }catch(e){}
   }
-  if(!restored){
-    var trips = getTrips();
-    if(trips.length){ renderLastTrip(trips[0]); renderTripsTable(); }
-  }
+  fetchTrips();
 })();
 updateLastUpdate();
 setInterval(updateLastUpdate, 10000);
