@@ -4,14 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Silence Scooter</title>
-<link rel="icon" type="image/png" href="">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<!-- favicon dynamique (rond batterie + SOC) réservé à l'onglet, 32px -->
+<link id="dyn-favicon" rel="icon" type="image/png" sizes="32x32" href="">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#14143a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Silence">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="mqtt.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -104,6 +107,10 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .cmd-icon-btn:active{transform:scale(.95)}
 .cmd-icon-btn svg{width:22px;height:22px;opacity:.7}
 @media(max-width:680px){.cmd-icon-btn{min-height:52px}}
+/* Spin pendant une synchro en cours */
+@keyframes sync-spin{to{transform:rotate(360deg)}}
+.cmd-icon-btn.syncing svg{animation:sync-spin .8s linear infinite;opacity:1;color:var(--teal)}
+.cmd-icon-btn.syncing{color:var(--teal)}
 
 /* ON / OFF buttons */
 .onoff-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -291,7 +298,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 
   <!-- Command icon buttons -->
   <div class="cmd-bar">
-    <div class="cmd-icon-btn" onclick="cmd('SYNC')" title="Forcer une synchronisation du scooter">
+    <div class="cmd-icon-btn js-sync" onclick="syncCmd()" title="Forcer une synchronisation du scooter">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/></svg>
       Sync
     </div>
@@ -611,7 +618,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
     <div class="mobile-page" id="mp-0">
       <!-- Command icon buttons -->
       <div class="cmd-bar">
-        <div class="cmd-icon-btn" onclick="cmd('SYNC')" title="Forcer une synchronisation du scooter">
+        <div class="cmd-icon-btn js-sync" onclick="syncCmd()" title="Forcer une synchronisation du scooter">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/></svg>
           Sync
         </div>
@@ -906,7 +913,7 @@ function updateFavicon(soc){
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(Math.round(soc), 16, 16);
-  var link = document.querySelector('link[rel=icon]');
+  var link = document.getElementById('dyn-favicon');
   if(link) link.href = _favCanvas.toDataURL();
 }
 
@@ -951,6 +958,7 @@ client.on('message', function(t, m){
       update(parsed);
     }
     _dataFromCache = false;
+    if(_syncing) stopSync();   // données fraîches reçues → fin de l'animation
     scheduleSave();
   }catch(e){}
 });
@@ -989,6 +997,27 @@ function updateLastUpdate(){
 }
 
 function cmd(c){ client.publish('home/silence-server/'+IMEI+'/command/'+c, ''); }
+
+// ─── SYNC : commande + animation jusqu'au retour des données ──
+var _syncing = false, _syncStart = 0, _syncTimer = null;
+function syncCmd(){
+  cmd('SYNC');
+  _syncing = true; _syncStart = Date.now();
+  toggleSyncSpin(true);
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(stopSync, 12000); // fallback si le scooter ne répond pas
+}
+function stopSync(){
+  if(!_syncing) return;
+  var wait = 500 - (Date.now() - _syncStart); // spin visible au moins 500ms
+  if(wait > 0){ setTimeout(stopSync, wait); return; }
+  _syncing = false;
+  clearTimeout(_syncTimer);
+  toggleSyncSpin(false);
+}
+function toggleSyncSpin(on){
+  document.querySelectorAll('.js-sync').forEach(function(b){ b.classList.toggle('syncing', on); });
+}
 
 // ─── DOUBLE CONFIRM ─────────────────────────────────────────
 var _confirmTimers = {};
