@@ -63,9 +63,11 @@ services:
           "$$RAW/dashboard/rambo-silence.png"
 
         # PWA : manifest, service worker et icônes
-        for f in manifest.json sw.js icon-192.png icon-512.png apple-touch-icon.png; do
-          wget -qO "/dashboard-data/$$f" "$$RAW/dashboard/$$f"
-        done
+        wget -qO /dashboard-data/manifest.json      "$$RAW/dashboard/manifest.json"
+        wget -qO /dashboard-data/sw.js              "$$RAW/dashboard/sw.js"
+        wget -qO /dashboard-data/icon-192.png       "$$RAW/dashboard/icon-192.png"
+        wget -qO /dashboard-data/icon-512.png       "$$RAW/dashboard/icon-512.png"
+        wget -qO /dashboard-data/apple-touch-icon.png "$$RAW/dashboard/apple-touch-icon.png"
 
         echo "Init done!"
 
