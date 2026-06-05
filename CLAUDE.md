@@ -44,7 +44,7 @@ Scooter ──TCP 38955──► silence-server ──MQTT 1883──► mosquit
 | `silence/helpers/messageParser.py` | Parser des trames scooter (protocole Z, `$RCAN`, `$STMS`) |
 | `silence/helpers/commands_definition.json` | Override des commandes TCP (ajoute `SYNC` → `$STMS`) |
 | `silence/services/CommandService.py` | Override : corrige bug upstream `NameError: name 'imei'` (→ `self.IMEI`) qui crashait le thread après chaque commande |
-| `dashboard/index.template.html` | Interface HTML, placeholder `TON_IMEI` dans `var IMEI`. Sélecteur de thème (aurora/indigo/teal) persistant via `localStorage`. Sparklines SVG maison (buffer client échantillonné 10s) pour temp/élec dans les diagnostics |
+| `dashboard/index.template.html` | Interface HTML, placeholder `TON_IMEI` dans `var IMEI`. Desktop : grille **4 colonnes** (`.col-left` contrôles / `.col-mid` batterie-moteur-coûts-trajets / `.col-diag` diagnostics **toujours affichés** / `.col-right` carte-trajet). Mobile : **4 pages** swipe (`mp-0`..`mp-3`, la 4e = diagnostics), dots en `position:fixed` bas d'écran. Diagnostics mobiles via mirroring `m-` (`txt2`, `setTemp`, `renderCellGrid`). Sélecteur de thème (aurora/indigo/teal) persistant via `localStorage`. Sparklines SVG maison (buffer client échantillonné 10s) pour temp/élec dans `.col-diag` (desktop uniquement) |
 | `dashboard/rambo-silence.png` | Visuel du scooter (PNG détouré rembg/isnet, fond transparent) affiché dans `.scooter-area` (fallback emoji 🛵 si absent) |
 
 ## Configuration
