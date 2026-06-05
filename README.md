@@ -62,6 +62,11 @@ services:
         wget -qO /dashboard-data/rambo-silence.png \
           "$$RAW/dashboard/rambo-silence.png"
 
+        # PWA : manifest, service worker et icônes
+        for f in manifest.json sw.js icon-192.png icon-512.png apple-touch-icon.png; do
+          wget -qO "/dashboard-data/$$f" "$$RAW/dashboard/$$f"
+        done
+
         echo "Init done!"
 
   mosquitto:

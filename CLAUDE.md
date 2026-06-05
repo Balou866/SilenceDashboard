@@ -31,7 +31,7 @@ Scooter ──TCP 38955──► silence-server ──MQTT 1883──► mosquit
 - `mosquitto-config` — `mosquitto.conf` (toujours réécrit par init)
 - `mosquitto-data` — persistance MQTT
 - `silence-config` — `configuration.json` avec IMEI injecté (toujours réécrit par init)
-- `dashboard-data` — `index.html` généré depuis le template + assets statiques `mqtt.min.js` et `rambo-silence.png` (téléchargés par init depuis le repo)
+- `dashboard-data` — `index.html` généré depuis le template + assets statiques `mqtt.min.js`, `rambo-silence.png` et fichiers PWA (`manifest.json`, `sw.js`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`) (tous téléchargés par init depuis le repo)
 
 ## Fichiers clés
 
@@ -46,6 +46,9 @@ Scooter ──TCP 38955──► silence-server ──MQTT 1883──► mosquit
 | `silence/services/CommandService.py` | Override : corrige bug upstream `NameError: name 'imei'` (→ `self.IMEI`) qui crashait le thread après chaque commande |
 | `dashboard/index.template.html` | Interface HTML, placeholder `TON_IMEI` dans `var IMEI`. Desktop : grille **4 colonnes** (`.col-left` contrôles / `.col-mid` batterie-moteur-coûts-trajets / `.col-diag` diagnostics **toujours affichés** / `.col-right` carte-trajet). Mobile : **4 pages** swipe (`mp-0`..`mp-3`, la 4e = diagnostics), dots en `position:fixed` bas d'écran. Diagnostics mobiles via mirroring `m-` (`txt2`, `setTemp`, `renderCellGrid`). Sélecteur de thème (aurora/indigo/teal) persistant via `localStorage`. Sparklines SVG maison (buffer client échantillonné 10s) pour temp/élec dans `.col-diag` (desktop uniquement) |
 | `dashboard/rambo-silence.png` | Visuel du scooter (PNG détouré rembg/isnet, fond transparent) affiché dans `.scooter-area` (fallback emoji 🛵 si absent) |
+| `dashboard/manifest.json` | Manifest PWA (nom, icônes, `display:standalone`, `theme_color`). Installable sur écran d'accueil mobile |
+| `dashboard/sw.js` | Service worker PWA — stratégie réseau d'abord, cache en repli (shell offline). `/data/*` (trips.json) jamais mis en cache |
+| `dashboard/icon.svg` | Source de l'icône (dégradé aurora + éclair). Rasterisée en `icon-192.png` / `icon-512.png` / `apple-touch-icon.png` (180px, fond opaque pour iOS) via PIL |
 
 ## Configuration
 
