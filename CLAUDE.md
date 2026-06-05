@@ -31,7 +31,7 @@ Scooter ──TCP 38955──► silence-server ──MQTT 1883──► mosquit
 - `mosquitto-config` — `mosquitto.conf` (toujours réécrit par init)
 - `mosquitto-data` — persistance MQTT
 - `silence-config` — `configuration.json` avec IMEI injecté (toujours réécrit par init)
-- `dashboard-data` — `index.html` généré depuis le template + assets statiques `mqtt.min.js`, `rambo-silence.png` et fichiers PWA (`manifest.json`, `sw.js`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`) (tous téléchargés par init depuis le repo)
+- `dashboard-data` — `index.html` généré depuis le template + assets statiques `mqtt.min.js`, `rambo-silence.png` et fichiers PWA (`manifest.json`, `sw.js`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`) (tous téléchargés par init depuis le repo). **L'init fait aussi `mkdir -p /dashboard-data/data`** : le service `dashboard` monte `dashboard-data` en `:ro` sur `/usr/share/nginx/html` PUIS `trip-data` en `:ro` sur `…/html/data` (montage imbriqué). Sans le dossier `data/` pré-créé dans le volume, Docker tente un `mkdir` sur un FS read-only → conteneur bloqué en *Created* → **deploy Portainer KO (500 nu)**. Ne pas retirer ce `mkdir`.
 
 ## Fichiers clés
 

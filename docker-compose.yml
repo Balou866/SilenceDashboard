@@ -18,6 +18,10 @@ services:
         set -e
         RAW="https://raw.githubusercontent.com/Balou866/SilenceDashboard/master"
 
+        # Crée le mountpoint du volume trip-data AVANT que dashboard ne monte
+        # /usr/share/nginx/html en :ro (sinon mkdir impossible -> conteneur bloqué)
+        mkdir -p /dashboard-data/data
+
         wget -qO /mosquitto-config/mosquitto.conf \
           "$$RAW/mosquitto/mosquitto.conf"
 
