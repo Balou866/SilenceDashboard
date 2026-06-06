@@ -52,8 +52,28 @@ def _on_trip_start(imei: str, now_ms: int):
         'start_soc': soc,
         'max_speed': 0.0,
         'speeds': [],
+        'path': [],          # GPS track: list of [lat, lon]
+        'last_pt_ms': 0,     # throttle GPS sampling
     }
     logging.info('Trip started: IMEI=%s odo=%.1f soc=%.1f%%', imei, odo, soc)
+
+PATH_INTERVAL_MS = 3000   # min delay between two recorded GPS points
+MAX_PATH_POINTS  = 2000   # cap to keep trips.json reasonable
+
+def _maybe_add_point(imei: str, now_ms: int):
+    active = _trip_active.get(imei)
+    if not active:
+        return
+    fields = _trip_fields.get(imei, {})
+    lat = _parse_float(fields.get('latitude'))
+    lon = _parse_float(fields.get('longitude'))
+    if not lat or not lon:   # None or 0 → no GPS fix
+        return
+    if now_ms - active['last_pt_ms'] < PATH_INTERVAL_MS:
+        return
+    active['last_pt_ms'] = now_ms
+    if len(active['path']) < MAX_PATH_POINTS:
+        active['path'].append([round(lat, 5), round(lon, 5)])
 
 def _on_trip_end(imei: str):
     global _all_trips
@@ -84,6 +104,7 @@ def _on_trip_end(imei: str):
         'bat':  str(bat),
         'vmax': round(active['max_speed']),
         'vavg': avg_spd,
+        'path': active['path'],
     }
 
     imei_trips = _all_trips.get(imei, [])
@@ -96,7 +117,7 @@ def _on_trip_end(imei: str):
     logging.info('Trip saved: IMEI=%s dist=%.1f km dur=%d min bat=%.1f%%',
                  imei, dist, dur, bat)
 
-def _track_field(imei: str, field: str, val):
+def _track_field(imei: str, field: str, val, now_ms: int):
     if imei not in _trip_fields:
         _trip_fields[imei] = {}
 
@@ -117,6 +138,9 @@ def _track_field(imei: str, field: str, val):
         _trip_active[imei]['speeds'].append(speed)
         if speed > _trip_active[imei]['max_speed']:
             _trip_active[imei]['max_speed'] = speed
+
+    elif field in ('latitude', 'longitude'):
+        _maybe_add_point(imei, now_ms)
 
 def _parse_float(raw) -> float | None:
     try:
@@ -151,7 +175,7 @@ def on_message(client, userdata, msg):
         if val is None and raw not in ('None', 'null', ''):
             val = raw  # keep string values (VIN, driveMode…)
 
-        _track_field(imei, field, val)
+        _track_field(imei, field, val, now_ms)
 
         if now_ms - _last_ts.get(imei, 0) > 1000:
             _last_ts[imei] = now_ms
@@ -163,9 +187,10 @@ def on_message(client, userdata, msg):
             payload = json.loads(msg.payload)
             payload['dataTimestamp'] = now_ms
             imei = parts[2]
-            for field in ('status', 'speed', 'odo', 'SOCbatteria', 'BatterySoC'):
+            for field in ('status', 'speed', 'odo', 'SOCbatteria', 'BatterySoC',
+                          'latitude', 'longitude'):
                 if field in payload:
-                    _track_field(imei, field, _parse_float(payload[field]))
+                    _track_field(imei, field, _parse_float(payload[field]), now_ms)
             client.publish(msg.topic, json.dumps(payload), qos=0, retain=True)
             return
         except Exception:

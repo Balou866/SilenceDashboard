@@ -218,6 +218,13 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 #gps-link-out{display:block;text-align:center;padding:8px;font-size:.75em;color:var(--muted);text-decoration:none;border-top:1px solid var(--border)}
 #gps-link-out:hover{color:var(--teal)}
 
+/* Trip route (homemade SVG, no external map dep) */
+.route-svg{width:100%;height:170px;display:block;background:rgba(255,255,255,.02);border-radius:10px;margin-top:6px}
+.route-line{fill:none;stroke:var(--teal);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.route-grid{stroke:rgba(255,255,255,.05);stroke-width:1}
+.route-dot-start{fill:var(--green)}
+.route-dot-end{fill:var(--red)}
+
 /* Last trip stats */
 .lt-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
 .lt-row:last-child{border-bottom:none}
@@ -597,6 +604,16 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
     </div>
   </div>
 
+  <!-- Trip route (retrace) -->
+  <div class="card" id="route-card" style="display:none">
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-6 2V6l6-2 6 2 6-2v16l-6 2-6-2z"/><path d="M9 4v16M15 6v16"/></svg>
+      Tracé du trajet <span id="route-when" style="color:var(--muted);font-weight:400;font-size:.85em"></span>
+    </div>
+    <svg id="route-svg" class="route-svg" viewBox="0 0 300 170" preserveAspectRatio="xMidYMid meet"></svg>
+    <div id="route-empty" style="color:var(--muted);font-size:.78em;text-align:center;padding:14px">Pas de points GPS pour ce trajet</div>
+  </div>
+
   <!-- Trajet en cours -->
   <div class="card" id="trip-live-card" style="display:none">
     <div class="card-title" style="color:var(--green)">● Trajet en cours</div>
@@ -726,6 +743,10 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
           <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Moy.</th></tr></thead>
           <tbody id="m-trips-body"><tr><td colspan="4" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet</td></tr></tbody>
         </table>
+      </div>
+      <div class="card" id="m-route-card" style="display:none">
+        <div class="card-title">Tracé du trajet <span id="m-route-when" style="color:var(--muted);font-weight:400;font-size:.85em"></span></div>
+        <svg id="m-route-svg" class="route-svg" viewBox="0 0 300 170" preserveAspectRatio="xMidYMid meet"></svg>
       </div>
     </div>
 
@@ -1281,6 +1302,49 @@ function renderLastTrip(t){
   txt('lt-bat',  t.bat+' %');
   txt('lt-vavg', t.vavg+' km/h');
   txt('lt-vmax', t.vmax+' km/h');
+  showRoute(t);
+}
+
+// ─── ROUTE (tracé GPS maison, SVG, sans dépendance carto) ────
+function buildRouteScreen(path){
+  if(!path || path.length < 2) return null;
+  var pad=12, W=300, H=170;
+  var k = Math.cos(path[0][0] * Math.PI/180) || 1;   // compense longitude vs latitude
+  var pts = path.map(function(p){ return [p[1]*k, p[0]]; }); // [x=lon*k, y=lat]
+  var xs=pts.map(function(p){return p[0];}), ys=pts.map(function(p){return p[1];});
+  var minX=Math.min.apply(null,xs), maxX=Math.max.apply(null,xs);
+  var minY=Math.min.apply(null,ys), maxY=Math.max.apply(null,ys);
+  var dx=(maxX-minX)||1e-6, dy=(maxY-minY)||1e-6;
+  var s=Math.min((W-2*pad)/dx,(H-2*pad)/dy);
+  var ox=(W-dx*s)/2, oy=(H-dy*s)/2;
+  return pts.map(function(p){
+    return [ ox+(p[0]-minX)*s, H-(oy+(p[1]-minY)*s) ]; // y inversé (SVG vers le bas)
+  });
+}
+function renderRoute(path, svgId, whenId, cardId, emptyId, whenText){
+  var card=$(cardId); if(!card) return;
+  var svg=$(svgId), empty=emptyId?$(emptyId):null;
+  card.style.display='block';
+  if(whenId) txt(whenId, whenText||'');
+  var scr=buildRouteScreen(path);
+  if(!scr){
+    if(svg) svg.innerHTML='';
+    if(empty){ empty.style.display='block'; } else { card.style.display='none'; }
+    return;
+  }
+  if(empty) empty.style.display='none';
+  var d='M'+scr.map(function(p){return p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' L');
+  var a=scr[0], b=scr[scr.length-1];
+  svg.innerHTML =
+    '<path class="route-line" d="'+d+'"/>'+
+    '<circle class="route-dot-start" cx="'+a[0].toFixed(1)+'" cy="'+a[1].toFixed(1)+'" r="4"/>'+
+    '<circle class="route-dot-end" cx="'+b[0].toFixed(1)+'" cy="'+b[1].toFixed(1)+'" r="4"/>';
+}
+function showRoute(t){
+  if(!t || t.path === undefined) return;  // trajet live sans tracé → garde l'affichage courant
+  var when = t && t.date ? t.date : '';
+  renderRoute(t&&t.path, 'route-svg',  'route-when',  'route-card',  'route-empty', when);
+  renderRoute(t&&t.path, 'm-route-svg','m-route-when','m-route-card', null,         when);
 }
 
 function renderTripsTable(){
@@ -1314,6 +1378,7 @@ function renderTripsTable(){
 }
 
 function toggleTripExpand(tr, t){
+  showRoute(t);   // clic sur un trajet → retrace son tracé GPS
   var next = tr.nextSibling;
   if(next && next.classList && next.classList.contains('trip-expand')){
     next.parentNode.removeChild(next);
