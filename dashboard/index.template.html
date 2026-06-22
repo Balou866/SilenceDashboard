@@ -145,8 +145,8 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 
 /* Usage stats */
 .usage-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
-.usage-val{font-size:1.1em;font-weight:700;color:var(--teal)}
-.usage-label{font-size:.62em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.usage-val{font-size:.95em;font-weight:700;color:var(--teal)}
+.usage-label{font-size:.58em;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
 
 /* Battery health summary */
 .bh-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
@@ -375,9 +375,9 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
       Statistiques d'usage
     </div>
     <div class="usage-grid">
-      <div><div class="usage-val" id="u-dist">--</div><div class="usage-label">km / charge</div></div>
-      <div><div class="usage-val" id="u-avg">--</div><div class="usage-label">trajet moy.</div></div>
-      <div><div class="usage-val" id="u-base">--</div><div class="usage-label">base calc.</div></div>
+      <div><div class="usage-val" id="u-dist">--</div><div class="usage-label">Distance totale</div></div>
+      <div><div class="usage-val" id="u-avg">--</div><div class="usage-label">Trajet moy.</div></div>
+      <div><div class="usage-val" id="u-base">--</div><div class="usage-label">Nb trajets</div></div>
     </div>
   </div>
 
@@ -558,6 +558,21 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 <!-- ══════════ RIGHT COLUMN ══════════ -->
 <div class="col-right">
 
+  <!-- Current position (map) -->
+  <div class="card-title" style="margin-bottom:8px">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Position actuelle
+  </div>
+  <div class="map-card">
+    <iframe id="map-iframe" allowfullscreen style="display:none"></iframe>
+    <div class="map-placeholder" id="map-placeholder">
+      <span>🗺️</span>
+      <span>En attente du GPS…</span>
+    </div>
+  </div>
+  <div id="gps-addr"></div>
+  <a id="gps-link-out" href="#" target="_blank">📍 Ouvrir dans Google Maps</a>
+
   <!-- Last trip (header + detail merged) -->
   <div class="card">
     <div class="trip-card-head">
@@ -595,17 +610,6 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
       </div>
     </div>
   </div>
-
-  <!-- Map -->
-  <div class="map-card">
-    <iframe id="map-iframe" allowfullscreen style="display:none"></iframe>
-    <div class="map-placeholder" id="map-placeholder">
-      <span>🗺️</span>
-      <span>En attente du GPS…</span>
-    </div>
-  </div>
-  <div id="gps-addr"></div>
-  <a id="gps-link-out" href="#" target="_blank">📍 Ouvrir dans Google Maps</a>
 
   <!-- Trip route (retrace) -->
   <div class="card" id="route-card" style="display:none">
@@ -728,6 +732,20 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 
     <!-- PAGE 2 : GPS / Trajets -->
     <div class="mobile-page" id="mp-2">
+      <!-- Current position (map) -->
+      <div class="card-title" style="margin-bottom:8px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Position actuelle
+      </div>
+      <div class="map-card">
+        <iframe id="m-map-iframe" allowfullscreen style="width:100%;height:200px;border:none;display:none"></iframe>
+        <div class="map-placeholder" id="m-map-placeholder">
+          <span>🗺️</span><span>En attente du GPS…</span>
+        </div>
+      </div>
+      <a id="m-gps-link-out" href="#" target="_blank" style="display:block;text-align:center;padding:8px;font-size:.75em;color:var(--muted);text-decoration:none;border-top:1px solid var(--border)">📍 Ouvrir dans Google Maps</a>
+
+      <!-- Last trip (header + detail merged) -->
       <div class="card">
         <div class="trip-card-head">
           <div>
@@ -746,13 +764,6 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
           <div class="lt-row"><span class="lt-icon-label">Efficacité</span><span class="lt-val" id="m-lt-eff">--</span></div>
         </div>
       </div>
-      <div class="map-card">
-        <iframe id="m-map-iframe" allowfullscreen style="width:100%;height:200px;border:none;display:none"></iframe>
-        <div class="map-placeholder" id="m-map-placeholder">
-          <span>🗺️</span><span>En attente du GPS…</span>
-        </div>
-      </div>
-      <a id="m-gps-link-out" href="#" target="_blank" style="display:block;text-align:center;padding:8px;font-size:.75em;color:var(--muted);text-decoration:none;border-top:1px solid var(--border)">📍 Ouvrir dans Google Maps</a>
       <div class="card">
         <div class="card-title">Trajets récents</div>
         <table class="trips-table">
@@ -1151,9 +1162,9 @@ function update(d){
   var trips = getTrips();
   if(trips.length > 0){
     var totalDist = trips.reduce(function(a,t){return a+parseFloat(t.dist);},0);
-    txt('u-avg',  (totalDist/trips.length).toFixed(1)+' km');
     txt('u-dist', totalDist.toFixed(1)+' km');
-    txt('u-base', totalDist.toFixed(0)+' km');
+    txt('u-avg',  (totalDist/trips.length).toFixed(1)+' km');
+    txt('u-base', String(trips.length));
   }
 
   updateBatteryUI(d, soc, voltage, current, charged, disch, regen);
