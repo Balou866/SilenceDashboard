@@ -206,10 +206,11 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 /* ══════════════ RIGHT COLUMN ══════════════ */
 .col-right{display:flex;flex-direction:column;gap:12px}
 
-/* Trip header */
-.trip-header-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
-.trip-dist-big{font-size:2.4em;font-weight:700;color:var(--text);line-height:1}
+/* Trip card (header + detail merged) */
+.trip-dist-big{font-size:2.1em;font-weight:700;color:var(--text);line-height:1}
 .trip-dist-label{font-size:.72em;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
+.trip-card-head{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:10px;margin-bottom:4px;border-bottom:1px solid var(--border)}
+.trip-ago{font-size:.72em;color:var(--muted)}
 
 /* Map */
 .map-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:160px;display:flex;align-items:center;justify-content:center;position:relative}
@@ -226,11 +227,13 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .route-map .leaflet-control-attribution{font-size:9px}
 
 /* Last trip stats */
-.lt-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+#lt-data,#m-lt-data{display:grid;grid-template-columns:1fr 1fr;column-gap:18px}
+.lt-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+#lt-data .lt-row:nth-last-child(-n+2),#m-lt-data .lt-row:nth-last-child(-n+2){border-bottom:none}
 .lt-row:last-child{border-bottom:none}
-.lt-icon-label{display:flex;align-items:center;gap:8px;font-size:.82em;color:var(--muted)}
+.lt-icon-label{display:flex;align-items:center;gap:7px;font-size:.8em;color:var(--muted)}
 .lt-icon-label svg{opacity:.55;flex-shrink:0}
-.lt-val{font-size:.9em;font-weight:700;color:var(--text)}
+.lt-val{font-size:.88em;font-weight:700;color:var(--text)}
 
 /* Details section (below right col) */
 .det-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
@@ -555,29 +558,14 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 <!-- ══════════ RIGHT COLUMN ══════════ -->
 <div class="col-right">
 
-  <!-- Last trip header -->
-  <div class="trip-header-card">
-    <div class="trip-dist-big" id="lt-dist-big">-- km</div>
-    <div class="trip-dist-label">Dernier trajet</div>
-    <div style="margin-top:6px;font-size:.72em;color:var(--muted)" id="lt-ago">--</div>
-  </div>
-
-  <!-- Map -->
-  <div class="map-card">
-    <iframe id="map-iframe" allowfullscreen style="display:none"></iframe>
-    <div class="map-placeholder" id="map-placeholder">
-      <span>🗺️</span>
-      <span>En attente du GPS…</span>
-    </div>
-  </div>
-  <div id="gps-addr"></div>
-  <a id="gps-link-out" href="#" target="_blank">📍 Ouvrir dans Google Maps</a>
-
-  <!-- Last trip detail -->
+  <!-- Last trip (header + detail merged) -->
   <div class="card">
-    <div class="card-title">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      Détail du dernier trajet
+    <div class="trip-card-head">
+      <div>
+        <div class="trip-dist-big" id="lt-dist-big">-- km</div>
+        <div class="trip-dist-label">Dernier trajet</div>
+      </div>
+      <div class="trip-ago" id="lt-ago">--</div>
     </div>
     <div id="lt-empty" style="color:var(--muted);font-size:.82em;text-align:center;padding:10px">Aucun trajet enregistré</div>
     <div id="lt-data" style="display:none">
@@ -607,6 +595,17 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
       </div>
     </div>
   </div>
+
+  <!-- Map -->
+  <div class="map-card">
+    <iframe id="map-iframe" allowfullscreen style="display:none"></iframe>
+    <div class="map-placeholder" id="map-placeholder">
+      <span>🗺️</span>
+      <span>En attente du GPS…</span>
+    </div>
+  </div>
+  <div id="gps-addr"></div>
+  <a id="gps-link-out" href="#" target="_blank">📍 Ouvrir dans Google Maps</a>
 
   <!-- Trip route (retrace) -->
   <div class="card" id="route-card" style="display:none">
@@ -729,10 +728,23 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 
     <!-- PAGE 2 : GPS / Trajets -->
     <div class="mobile-page" id="mp-2">
-      <div class="trip-header-card">
-        <div class="trip-dist-big" id="m-lt-dist-big">-- km</div>
-        <div class="trip-dist-label">Dernier trajet</div>
-        <div style="margin-top:6px;font-size:.72em;color:var(--muted)" id="m-lt-ago">--</div>
+      <div class="card">
+        <div class="trip-card-head">
+          <div>
+            <div class="trip-dist-big" id="m-lt-dist-big">-- km</div>
+            <div class="trip-dist-label">Dernier trajet</div>
+          </div>
+          <div class="trip-ago" id="m-lt-ago">--</div>
+        </div>
+        <div id="m-lt-empty" style="color:var(--muted);font-size:.82em;text-align:center;padding:10px">Aucun trajet enregistré</div>
+        <div id="m-lt-data" style="display:none">
+          <div class="lt-row"><span class="lt-icon-label">Durée</span><span class="lt-val" id="m-lt-dur">--</span></div>
+          <div class="lt-row"><span class="lt-icon-label">Distance</span><span class="lt-val" id="m-lt-dist">--</span></div>
+          <div class="lt-row"><span class="lt-icon-label">Batterie consommée</span><span class="lt-val" id="m-lt-bat">--</span></div>
+          <div class="lt-row"><span class="lt-icon-label">Vitesse moyenne</span><span class="lt-val" id="m-lt-vavg">--</span></div>
+          <div class="lt-row"><span class="lt-icon-label">Vitesse max</span><span class="lt-val" id="m-lt-vmax">--</span></div>
+          <div class="lt-row"><span class="lt-icon-label">Efficacité</span><span class="lt-val" id="m-lt-eff">--</span></div>
+        </div>
       </div>
       <div class="map-card">
         <iframe id="m-map-iframe" allowfullscreen style="width:100%;height:200px;border:none;display:none"></iframe>
@@ -1307,16 +1319,16 @@ function formatTripDate(ts){
 }
 
 function renderLastTrip(t){
-  $('lt-empty').style.display = 'none';
-  $('lt-data').style.display  = 'block';
+  ['lt-empty','m-lt-empty'].forEach(function(id){ var e=$(id); if(e) e.style.display='none'; });
+  ['lt-data','m-lt-data'].forEach(function(id){ var e=$(id); if(e) e.style.display='grid'; });
   txt2('lt-dist-big', t.dist+' km');
   txt2('lt-ago', timeAgo(t.ts));
-  txt('lt-dur',  t.dur+' min');
-  txt('lt-dist', t.dist+' km');
-  txt('lt-bat',  t.bat+' %');
-  txt('lt-vavg', t.vavg+' km/h');
-  txt('lt-vmax', t.vmax+' km/h');
-  txt('lt-eff',  t.eff ? t.eff+' Wh/km' : '--');
+  txt2('lt-dur',  t.dur+' min');
+  txt2('lt-dist', t.dist+' km');
+  txt2('lt-bat',  t.bat+' %');
+  txt2('lt-vavg', t.vavg+' km/h');
+  txt2('lt-vmax', t.vmax+' km/h');
+  txt2('lt-eff',  t.eff ? t.eff+' Wh/km' : '--');
   showRoute(t);
 }
 
