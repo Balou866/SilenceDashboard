@@ -21,6 +21,11 @@ MAX_TRIPS  = 100
 # the engine still on (red light, standby, kickstand) never split a trip.
 OFF_STATUSES = (0, 1, 5)
 
+# Usable battery capacity (Wh) — Silence S01 / SEAT MÓ ≈ 5.6 kWh.
+# Used to turn the SoC drop (%) of a trip into a Wh/km efficiency figure.
+# Override with BATTERY_WH if your pack differs.
+BATTERY_WH = float(os.getenv('BATTERY_WH', 5600))
+
 # ─── TRIP PERSISTENCE ─────────────────────────────────────────
 
 def _load_trips() -> dict:
@@ -95,12 +100,29 @@ def _on_trip_end(imei: str):
         logging.info('Trip ignored (%.1f km)', dist)
         return
 
-    dur     = max(1, round((time.time() * 1000 - active['start_time']) / 60000))
+    dur_f   = (time.time() * 1000 - active['start_time']) / 60000   # minutes (float)
+    dur     = max(1, round(dur_f))
     # Average over the whole engine-on session (km / h). More faithful than the
     # mean of raw speed samples, which is dragged down by idle stops.
     avg_spd = round(dist / (dur / 60)) if dur else 0
     bat     = round(active['start_soc'] - end_soc, 1)
-    dt      = datetime.fromtimestamp(active['start_time'] / 1000)
+    max_spd = active['max_speed']
+
+    # ── Sanity filters (inspired by noiwid/silence-scooter-homeassistant) ──
+    # Drop physically impossible trips born from GPS jumps or odo glitches.
+    if avg_spd > 120:
+        logging.info('Trip rejected (avg %.0f km/h implausible)', avg_spd)
+        return
+    if max_spd == 0 and avg_spd > 10:
+        logging.info('Trip rejected (no speed samples but avg %.0f km/h)', avg_spd)
+        return
+    if dur_f < 1.5 and dist > 2:
+        logging.info('Trip rejected (%.1f km in %.1f min)', dist, dur_f)
+        return
+
+    # Energy efficiency in Wh/km from the SoC drop over the trip.
+    eff = round(bat / 100 * BATTERY_WH / dist) if bat > 0 else 0
+    dt  = datetime.fromtimestamp(active['start_time'] / 1000)
 
     trip = {
         'date': dt.strftime('%d/%m %H:%M'),
@@ -108,8 +130,9 @@ def _on_trip_end(imei: str):
         'dur':  dur,
         'dist': str(dist),
         'bat':  str(bat),
-        'vmax': round(active['max_speed']),
+        'vmax': round(max_spd),
         'vavg': avg_spd,
+        'eff':  eff,
         'path': active['path'],
     }
 
@@ -120,8 +143,8 @@ def _on_trip_end(imei: str):
     _all_trips[imei] = imei_trips
     _save_trips(_all_trips)
 
-    logging.info('Trip saved: IMEI=%s dist=%.1f km dur=%d min bat=%.1f%%',
-                 imei, dist, dur, bat)
+    logging.info('Trip saved: IMEI=%s dist=%.1f km dur=%d min bat=%.1f%% eff=%d Wh/km',
+                 imei, dist, dur, bat, eff)
 
 def _track_field(imei: str, field: str, val, now_ms: int):
     if imei not in _trip_fields:

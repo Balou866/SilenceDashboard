@@ -601,6 +601,10 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
         <span class="lt-icon-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Vitesse max</span>
         <span class="lt-val" id="lt-vmax">--</span>
       </div>
+      <div class="lt-row">
+        <span class="lt-icon-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v6h-6"/></svg>Efficacité</span>
+        <span class="lt-val" id="lt-eff">--</span>
+      </div>
     </div>
   </div>
 
@@ -1312,6 +1316,7 @@ function renderLastTrip(t){
   txt('lt-bat',  t.bat+' %');
   txt('lt-vavg', t.vavg+' km/h');
   txt('lt-vmax', t.vmax+' km/h');
+  txt('lt-eff',  t.eff ? t.eff+' Wh/km' : '--');
   showRoute(t);
 }
 
@@ -1407,7 +1412,7 @@ function toggleTripExpand(tr, t){
   }
   var exp = document.createElement('tr');
   exp.className = 'trip-expand';
-  exp.innerHTML = '<td colspan="4">🔋 Bat. conso : <span>'+t.bat+' %</span> &nbsp;|&nbsp; ⚡ Vmax : <span>'+t.vmax+' km/h</span></td>';
+  exp.innerHTML = '<td colspan="4">🔋 Bat. conso : <span>'+t.bat+' %</span> &nbsp;|&nbsp; ⚡ Vmax : <span>'+t.vmax+' km/h</span>'+(t.eff?' &nbsp;|&nbsp; 📈 Effic. : <span>'+t.eff+' Wh/km</span>':'')+'</td>';
   tr.parentNode.insertBefore(exp, tr.nextSibling);
 }
 
