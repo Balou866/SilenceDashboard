@@ -15,6 +15,12 @@ DATA_DIR   = os.getenv('DATA_DIR', '/data')
 TRIPS_FILE = os.path.join(DATA_DIR, 'trips.json')
 MAX_TRIPS  = 100
 
+# Engine considered OFF when `status` is one of these (matches off_statuses in
+# silence/helpers/messageParser.py). A trip = one engine-on session: it starts
+# when status leaves this set and ends when it returns, so transient stops with
+# the engine still on (red light, standby, kickstand) never split a trip.
+OFF_STATUSES = (0, 1, 5)
+
 # ─── TRIP PERSISTENCE ─────────────────────────────────────────
 
 def _load_trips() -> dict:
@@ -36,7 +42,7 @@ _all_trips: dict = _load_trips()
 # ─── TRIP STATE MACHINE ────────────────────────────────────────
 
 _trip_fields: dict[str, dict] = {}  # imei -> {field: value}
-_trip_active: dict[str, dict] = {}  # imei -> {start_time, start_odo, start_soc, max_speed, speeds}
+_trip_active: dict[str, dict] = {}  # imei -> {start_time, start_odo, start_soc, max_speed, path, last_pt_ms}
 
 def _get_soc(fields: dict) -> float:
     soc = fields.get('SOCbatteria') if fields.get('SOCbatteria') is not None else fields.get('BatterySoC')
@@ -51,7 +57,6 @@ def _on_trip_start(imei: str, now_ms: int):
         'start_odo': odo,
         'start_soc': soc,
         'max_speed': 0.0,
-        'speeds': [],
         'path': [],          # GPS track: list of [lat, lon]
         'last_pt_ms': 0,     # throttle GPS sampling
     }
@@ -91,8 +96,9 @@ def _on_trip_end(imei: str):
         return
 
     dur     = max(1, round((time.time() * 1000 - active['start_time']) / 60000))
-    speeds  = active['speeds']
-    avg_spd = round(sum(speeds) / len(speeds)) if speeds else 0
+    # Average over the whole engine-on session (km / h). More faithful than the
+    # mean of raw speed samples, which is dragged down by idle stops.
+    avg_spd = round(dist / (dur / 60)) if dur else 0
     bat     = round(active['start_soc'] - end_soc, 1)
     dt      = datetime.fromtimestamp(active['start_time'] / 1000)
 
@@ -126,16 +132,15 @@ def _track_field(imei: str, field: str, val, now_ms: int):
     fields[field] = val
 
     if field == 'status':
-        prev_moving = (prev_status == 4)
-        curr_moving = (val == 4)
-        if curr_moving and not prev_moving:
+        prev_on = prev_status is not None and prev_status not in OFF_STATUSES
+        curr_on = val is not None and val not in OFF_STATUSES
+        if curr_on and not prev_on:
             _on_trip_start(imei, now_ms)
-        elif prev_moving and not curr_moving:
+        elif prev_on and not curr_on:
             _on_trip_end(imei)
 
     elif field == 'speed' and imei in _trip_active and val is not None:
         speed = float(val)
-        _trip_active[imei]['speeds'].append(speed)
         if speed > _trip_active[imei]['max_speed']:
             _trip_active[imei]['max_speed'] = speed
 

@@ -1,8 +1,9 @@
 // Service worker Silence Dashboard — réseau d'abord, cache en repli (offline shell).
-const CACHE = 'silence-v1';
+const CACHE = 'silence-v2';
 const ASSETS = [
   '/', '/index.html', '/mqtt.min.js', '/rambo-silence.png',
-  '/manifest.json', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'
+  '/manifest.json', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png',
+  '/leaflet.css', '/leaflet.js'
 ];
 
 self.addEventListener('install', (e) => {
@@ -25,6 +26,8 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   // Données live (trips.json) : toujours réseau, jamais servies depuis le cache.
   if (url.pathname.startsWith('/data/')) return;
+  // Tuiles cartographiques OSM : réseau uniquement, jamais mises en cache.
+  if (url.hostname.endsWith('tile.openstreetmap.org')) return;
   e.respondWith(
     fetch(req)
       .then((resp) => {

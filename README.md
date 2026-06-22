@@ -73,6 +73,11 @@ services:
         wget -qO /dashboard-data/icon-512.png       "$$RAW/dashboard/icon-512.png"
         wget -qO /dashboard-data/apple-touch-icon.png "$$RAW/dashboard/apple-touch-icon.png"
 
+        # Leaflet (fond de carte OSM pour le tracé du trajet) — auto-hébergé
+        # dans dashboard-data, servi en same-origin (cache PWA possible)
+        wget -qO /dashboard-data/leaflet.css "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        wget -qO /dashboard-data/leaflet.js  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+
         echo "Init done!"
 
   mosquitto:
@@ -99,9 +104,13 @@ services:
       dockerfile: mqtt-retain/Dockerfile
     container_name: silence-retain
     restart: unless-stopped
+    environment:
+      - TZ=Europe/Paris
     depends_on:
       mosquitto:
         condition: service_healthy
+    volumes:
+      - trip-data:/data
 
   silence-server:
     build:
@@ -133,12 +142,14 @@ services:
       - "8083:80"
     volumes:
       - dashboard-data:/usr/share/nginx/html:ro
+      - trip-data:/usr/share/nginx/html/data:ro
 
 volumes:
   mosquitto-config:
   mosquitto-data:
   silence-config:
   dashboard-data:
+  trip-data:
 ```
 
 ## Accès

@@ -16,6 +16,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Silence">
 <script src="mqtt.min.js"></script>
+<link rel="stylesheet" href="leaflet.css">
+<script src="leaflet.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -218,12 +220,10 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 #gps-link-out{display:block;text-align:center;padding:8px;font-size:.75em;color:var(--muted);text-decoration:none;border-top:1px solid var(--border)}
 #gps-link-out:hover{color:var(--teal)}
 
-/* Trip route (homemade SVG, no external map dep) */
-.route-svg{width:100%;height:170px;display:block;background:rgba(255,255,255,.02);border-radius:10px;margin-top:6px}
-.route-line{fill:none;stroke:var(--teal);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
-.route-grid{stroke:rgba(255,255,255,.05);stroke-width:1}
-.route-dot-start{fill:var(--green)}
-.route-dot-end{fill:var(--red)}
+/* Trip route — Leaflet map (OSM tiles) */
+.route-map{width:100%;height:220px;border-radius:10px;margin-top:6px;background:rgba(255,255,255,.04)}
+.route-map .leaflet-container{border-radius:10px;background:#1a1a2e}
+.route-map .leaflet-control-attribution{font-size:9px}
 
 /* Last trip stats */
 .lt-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
@@ -610,7 +610,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-6 2V6l6-2 6 2 6-2v16l-6 2-6-2z"/><path d="M9 4v16M15 6v16"/></svg>
       Tracé du trajet <span id="route-when" style="color:var(--muted);font-weight:400;font-size:.85em"></span>
     </div>
-    <svg id="route-svg" class="route-svg" viewBox="0 0 300 170" preserveAspectRatio="xMidYMid meet"></svg>
+    <div id="route-map" class="route-map"></div>
     <div id="route-empty" style="color:var(--muted);font-size:.78em;text-align:center;padding:14px">Pas de points GPS pour ce trajet</div>
   </div>
 
@@ -746,7 +746,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
       </div>
       <div class="card" id="m-route-card" style="display:none">
         <div class="card-title">Tracé du trajet <span id="m-route-when" style="color:var(--muted);font-weight:400;font-size:.85em"></span></div>
-        <svg id="m-route-svg" class="route-svg" viewBox="0 0 300 170" preserveAspectRatio="xMidYMid meet"></svg>
+        <div id="m-route-map" class="route-map"></div>
       </div>
     </div>
 
@@ -1234,7 +1234,10 @@ function updateGPS(d){
 var trip = null, tripTimer = null, tripSpeeds = [];
 
 function trackTrip(d, speed, soc, odo){
-  var moving = (d.status === 4);
+  // Trip = session moteur allumé. status ∈ {0,1,5} = éteint (cf. relay.py
+  // OFF_STATUSES) → un arrêt moteur tournant (feu rouge) ne coupe pas le trajet.
+  var st = parseInt(d.status, 10);
+  var moving = !isNaN(st) && [0,1,5].indexOf(st) === -1;
 
   if(moving && !trip){
     trip = { startTime:Date.now(), startOdo:odo, startSoc:soc, maxSpeed:speed };
@@ -1292,6 +1295,13 @@ function fetchTrips(){
     .catch(function(){});
 }
 
+// Heure locale (navigateur) à partir du timestamp epoch — neutre du fuseau du
+// serveur. Évite l'ancien champ `date` préformaté en UTC côté relay.
+function formatTripDate(ts){
+  if(!ts) return '';
+  return new Date(ts).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
 function renderLastTrip(t){
   $('lt-empty').style.display = 'none';
   $('lt-data').style.display  = 'block';
@@ -1305,48 +1315,59 @@ function renderLastTrip(t){
   showRoute(t);
 }
 
-// ─── ROUTE (tracé GPS maison, SVG, sans dépendance carto) ────
-function buildRouteScreen(path){
-  if(!path || path.length < 2) return null;
-  var pad=12, W=300, H=170;
-  var k = Math.cos(path[0][0] * Math.PI/180) || 1;   // compense longitude vs latitude
-  var pts = path.map(function(p){ return [p[1]*k, p[0]]; }); // [x=lon*k, y=lat]
-  var xs=pts.map(function(p){return p[0];}), ys=pts.map(function(p){return p[1];});
-  var minX=Math.min.apply(null,xs), maxX=Math.max.apply(null,xs);
-  var minY=Math.min.apply(null,ys), maxY=Math.max.apply(null,ys);
-  var dx=(maxX-minX)||1e-6, dy=(maxY-minY)||1e-6;
-  var s=Math.min((W-2*pad)/dx,(H-2*pad)/dy);
-  var ox=(W-dx*s)/2, oy=(H-dy*s)/2;
-  return pts.map(function(p){
-    return [ ox+(p[0]-minX)*s, H-(oy+(p[1]-minY)*s) ]; // y inversé (SVG vers le bas)
-  });
-}
-function renderRoute(path, svgId, whenId, cardId, emptyId, whenText){
-  var card=$(cardId); if(!card) return;
-  var svg=$(svgId), empty=emptyId?$(emptyId):null;
-  card.style.display='block';
-  if(whenId) txt(whenId, whenText||'');
-  var scr=buildRouteScreen(path);
-  if(!scr){
-    if(svg) svg.innerHTML='';
-    if(empty){ empty.style.display='block'; } else { card.style.display='none'; }
-    return;
-  }
-  if(empty) empty.style.display='none';
-  var d='M'+scr.map(function(p){return p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' L');
-  var a=scr[0], b=scr[scr.length-1];
-  svg.innerHTML =
-    '<path class="route-line" d="'+d+'"/>'+
-    '<circle class="route-dot-start" cx="'+a[0].toFixed(1)+'" cy="'+a[1].toFixed(1)+'" r="4"/>'+
-    '<circle class="route-dot-end" cx="'+b[0].toFixed(1)+'" cy="'+b[1].toFixed(1)+'" r="4"/>';
-}
-function showRoute(t){
-  if(!t || t.path === undefined) return;  // trajet live sans tracé → garde l'affichage courant
-  var when = t && t.date ? t.date : '';
-  renderRoute(t&&t.path, 'route-svg',  'route-when',  'route-card',  'route-empty', when);
-  renderRoute(t&&t.path, 'm-route-svg','m-route-when','m-route-card', null,         when);
+// ─── ROUTE (tracé GPS sur fond de carte OpenStreetMap via Leaflet) ────
+var _routeMaps = {};   // mapId -> { map, layer, markers[] }
+
+function _cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function _ensureMap(mapId){
+  if(_routeMaps[mapId]) return _routeMaps[mapId];
+  if(typeof L === 'undefined') return null;       // Leaflet absent (offline 1er chargement)
+  var el = $(mapId); if(!el) return null;
+  var map = L.map(el, { attributionControl:true, zoomControl:true });
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom:19, attribution:'© OpenStreetMap'
+  }).addTo(map);
+  map.setView([48.857, 2.352], 12);               // vue par défaut avant 1er tracé
+  _routeMaps[mapId] = { map:map, layer:null, markers:[] };
+  return _routeMaps[mapId];
 }
 
+function renderRoute(path, mapId, whenId, cardId, emptyId, whenText){
+  var card=$(cardId); if(!card) return;
+  card.style.display='block';
+  if(whenId) txt(whenId, whenText||'');
+  var empty = emptyId ? $(emptyId) : null;
+  var o = _ensureMap(mapId);
+  var ok = o && path && path.length >= 2;
+  if(empty) empty.style.display = ok ? 'none' : 'block';
+  if(!o) return;
+  // efface le tracé précédent
+  if(o.layer){ o.map.removeLayer(o.layer); o.layer=null; }
+  o.markers.forEach(function(m){ o.map.removeLayer(m); });
+  o.markers = [];
+  if(!ok) return;
+  var teal = _cssVar('--teal') || '#00d4aa';
+  o.layer = L.polyline(path, { color:teal, weight:4, opacity:.9 }).addTo(o.map);
+  o.markers.push(
+    L.circleMarker(path[0],              { radius:5, color:'#fff', weight:2, fillColor:'#4caf50', fillOpacity:1 }).addTo(o.map),
+    L.circleMarker(path[path.length-1],  { radius:5, color:'#fff', weight:2, fillColor:'#f44336', fillOpacity:1 }).addTo(o.map)
+  );
+  // le conteneur a pu être masqué (card display:none) → recalcule la taille
+  // avant le cadrage, sinon fitBounds vise un conteneur 0px.
+  setTimeout(function(){ o.map.invalidateSize(); o.map.fitBounds(o.layer.getBounds(), { padding:[20,20] }); }, 60);
+}
+
+function showRoute(t){
+  if(!t || t.path === undefined) return;  // trajet live sans tracé → garde l'affichage courant
+  var when = t && t.ts ? formatTripDate(t.ts) : (t && t.date ? t.date : '');
+  renderRoute(t.path, 'route-map',   'route-when',  'route-card',  'route-empty', when);
+  renderRoute(t.path, 'm-route-map', 'm-route-when','m-route-card', null,         when);
+}
+
+function tripRowHTML(t){
+  return '<td>'+formatTripDate(t.ts)+'</td><td>'+t.dur+'min</td><td>'+t.dist+' km</td><td>'+t.vavg+' km/h</td>';
+}
 function renderTripsTable(){
   var trips = getTrips(); if(!trips.length) return;
   // desktop
@@ -1357,7 +1378,7 @@ function renderTripsTable(){
       var tr = document.createElement('tr');
       tr.className = 'trip-main';
       tr.dataset.idx = idx;
-      tr.innerHTML = '<td>'+t.date+'</td><td>'+t.dur+'min</td><td>'+t.dist+' km</td><td>'+t.vavg+' km/h</td>';
+      tr.innerHTML = tripRowHTML(t);
       tr.onclick = function(){ toggleTripExpand(this, t); };
       tbody.appendChild(tr);
     });
@@ -1369,7 +1390,7 @@ function renderTripsTable(){
     trips.slice(0,10).forEach(function(t, idx){
       var tr = document.createElement('tr');
       tr.className = 'trip-main';
-      tr.innerHTML = '<td>'+t.date+'</td><td>'+t.dur+'min</td><td>'+t.dist+' km</td><td>'+t.vavg+' km/h</td>';
+      tr.innerHTML = tripRowHTML(t);
       tr.onclick = function(){ toggleTripExpand(this, t); };
       mtbody.appendChild(tr);
     });
