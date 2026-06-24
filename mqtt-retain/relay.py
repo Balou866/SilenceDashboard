@@ -3,6 +3,7 @@ import os
 import logging
 import time
 import json
+import math
 from datetime import datetime
 
 _last_ts: dict[str, int] = {}
@@ -20,6 +21,9 @@ MAX_TRIPS  = 100
 # when status leaves this set and ends when it returns, so transient stops with
 # the engine still on (red light, standby, kickstand) never split a trip.
 OFF_STATUSES = (0, 1, 5)
+
+# Telemetry temp fields averaged over a trip -> short key stored in the trip.
+TEMP_FIELDS = {'ambientTemp': 'amb', 'motorTemp': 'mot', 'inverterTemp': 'inv'}
 
 # Usable battery capacity (Wh) — Silence S01 / SEAT MÓ ≈ 5.6 kWh.
 # Used to turn the SoC drop (%) of a trip into a Wh/km efficiency figure.
@@ -64,6 +68,7 @@ def _on_trip_start(imei: str, now_ms: int):
         'max_speed': 0.0,
         'path': [],          # GPS track: list of [lat, lon]
         'last_pt_ms': 0,     # throttle GPS sampling
+        'temps': {'amb': [0.0, 0], 'mot': [0.0, 0], 'inv': [0.0, 0]},  # key -> [sum, count]
     }
     logging.info('Trip started: IMEI=%s odo=%.1f soc=%.1f%%', imei, odo, soc)
 
@@ -85,6 +90,18 @@ def _maybe_add_point(imei: str, now_ms: int):
     if len(active['path']) < MAX_PATH_POINTS:
         active['path'].append([round(lat, 5), round(lon, 5)])
 
+def _haversine(p1, p2) -> float:
+    """Great-circle distance (km) between two [lat, lon] points."""
+    lat1, lon1 = math.radians(p1[0]), math.radians(p1[1])
+    lat2, lon2 = math.radians(p2[0]), math.radians(p2[1])
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    return 6371.0 * 2 * math.asin(math.sqrt(a))
+
+def _path_distance(path) -> float:
+    """Sum of haversine segments over a GPS path (km)."""
+    return sum(_haversine(path[i - 1], path[i]) for i in range(1, len(path)))
+
 def _on_trip_end(imei: str):
     global _all_trips
     active = _trip_active.pop(imei, None)
@@ -95,7 +112,13 @@ def _on_trip_end(imei: str):
     end_odo = float(fields.get('odo') or active['start_odo'])
     end_soc = _get_soc(fields)
 
-    dist = round(end_odo - active['start_odo'], 1)
+    # Odometer is whole-km resolution on the scooter, so Δodo always rounds to a
+    # full km. The GPS track (sampled every 3 s) yields sub-km precision — use it
+    # when it covers the trip, fall back to Δodo when there's no/short fix.
+    odo_dist  = round(end_odo - active['start_odo'], 1)
+    path      = active['path']
+    gps_dist  = round(_path_distance(path), 1) if len(path) >= 2 else 0.0
+    dist      = gps_dist if gps_dist >= 0.1 else odo_dist
     if dist < 0.1:
         logging.info('Trip ignored (%.1f km)', dist)
         return
@@ -124,6 +147,11 @@ def _on_trip_end(imei: str):
     eff = round(bat / 100 * BATTERY_WH / dist) if bat > 0 else 0
     dt  = datetime.fromtimestamp(active['start_time'] / 1000)
 
+    # Mean temperatures over the trip (None when never reported, e.g. no CAN poll).
+    def _avg_temp(key):
+        s, n = active['temps'][key]
+        return round(s / n) if n else None
+
     trip = {
         'date': dt.strftime('%d/%m %H:%M'),
         'ts':   active['start_time'],
@@ -133,6 +161,9 @@ def _on_trip_end(imei: str):
         'vmax': round(max_spd),
         'vavg': avg_spd,
         'eff':  eff,
+        'tamb': _avg_temp('amb'),
+        'tmot': _avg_temp('mot'),
+        'tinv': _avg_temp('inv'),
         'path': active['path'],
     }
 
@@ -143,8 +174,8 @@ def _on_trip_end(imei: str):
     _all_trips[imei] = imei_trips
     _save_trips(_all_trips)
 
-    logging.info('Trip saved: IMEI=%s dist=%.1f km dur=%d min bat=%.1f%% eff=%d Wh/km',
-                 imei, dist, dur, bat, eff)
+    logging.info('Trip saved: IMEI=%s dist=%.1f km (%s, gps=%.1f odo=%.1f) dur=%d min bat=%.1f%% eff=%d Wh/km',
+                 imei, dist, 'gps' if gps_dist >= 0.1 else 'odo', gps_dist, odo_dist, dur, bat, eff)
 
 def _track_field(imei: str, field: str, val, now_ms: int):
     if imei not in _trip_fields:
@@ -169,6 +200,14 @@ def _track_field(imei: str, field: str, val, now_ms: int):
 
     elif field in ('latitude', 'longitude'):
         _maybe_add_point(imei, now_ms)
+
+    elif field in TEMP_FIELDS and imei in _trip_active and val is not None:
+        try:
+            acc = _trip_active[imei]['temps'][TEMP_FIELDS[field]]
+            acc[0] += float(val)
+            acc[1] += 1
+        except (ValueError, TypeError):
+            pass
 
 def _parse_float(raw) -> float | None:
     try:

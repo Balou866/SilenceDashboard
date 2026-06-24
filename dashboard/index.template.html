@@ -194,11 +194,11 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .trips-table th{color:var(--muted);font-size:.7em;text-transform:uppercase;letter-spacing:1px;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;font-weight:500}
 .trips-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--text)}
 .trips-table tr:last-child td{border-bottom:none}
+.trips-more{margin-top:8px;width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);font-size:.72em;text-transform:uppercase;letter-spacing:1px;padding:6px;border-radius:6px;cursor:pointer}
+.trips-more:hover{background:rgba(255,255,255,.08);color:var(--text)}
 .trips-table tr.trip-main{cursor:pointer}
 .trips-table tr.trip-main:hover td{background:rgba(255,255,255,.04)}
 .trips-table td:not(:first-child){text-align:right;font-weight:600;color:var(--teal)}
-.trip-expand td{padding:6px 8px 10px;background:rgba(0,212,170,.05);font-size:.78em;color:var(--muted)}
-.trip-expand td span{color:var(--text);font-weight:600}
 
 /* ══════════════ DIAGNOSTICS COLUMN ══════════════ */
 .col-diag{display:flex;flex-direction:column;gap:12px}
@@ -272,6 +272,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .spark-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
 .spark-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .spark-lbl{font-size:.6em;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px}
+.spark-cap{display:flex;justify-content:space-between;font-size:.58em;color:var(--muted);margin-top:-3px}
 
 /* Trip live card sticky on mobile */
 @media(max-width:680px){
@@ -486,9 +487,10 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
       Trajets récents
     </div>
     <table class="trips-table">
-      <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Moy.</th></tr></thead>
-      <tbody id="trips-body"><tr><td colspan="4" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet enregistré</td></tr></tbody>
+      <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Vmax/Moy<br>km/h</th><th>Bat.</th><th>Effic.<br>Wh/km</th><th>T° A/O/M<br>°C</th></tr></thead>
+      <tbody id="trips-body"><tr><td colspan="7" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet enregistré</td></tr></tbody>
     </table>
+    <button class="trips-more" id="trips-more" style="display:none" onclick="toggleAllTrips()"></button>
   </div>
 
 </div>
@@ -524,16 +526,19 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
       <span><i style="background:#00d4aa"></i>Batterie</span>
     </div>
     <svg class="spark" id="spark-temp" viewBox="0 0 100 32" preserveAspectRatio="none"></svg>
+    <div class="spark-cap"><span>↕ <span id="sc-temp">--</span></span><span>↔ ~10 min</span></div>
     <hr class="sep">
     <div class="card-title">Historique électrique</div>
     <div class="spark-row">
       <div>
         <div class="spark-lbl">Tension</div>
         <svg class="spark" id="spark-volt" viewBox="0 0 100 32" preserveAspectRatio="none"></svg>
+        <div class="spark-cap"><span>↕ <span id="sc-volt">--</span></span><span>↔ ~10 min</span></div>
       </div>
       <div>
         <div class="spark-lbl">Courant</div>
         <svg class="spark" id="spark-curr" viewBox="0 0 100 32" preserveAspectRatio="none"></svg>
+        <div class="spark-cap"><span>↕ <span id="sc-curr">--</span></span><span>↔ ~10 min</span></div>
       </div>
     </div>
   </div>
@@ -767,9 +772,10 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
       <div class="card">
         <div class="card-title">Trajets récents</div>
         <table class="trips-table">
-          <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Moy.</th></tr></thead>
-          <tbody id="m-trips-body"><tr><td colspan="4" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet</td></tr></tbody>
+          <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Vmax/Moy<br>km/h</th><th>Bat.</th><th>Effic.<br>Wh/km</th><th>T° A/O/M<br>°C</th></tr></thead>
+          <tbody id="m-trips-body"><tr><td colspan="7" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet</td></tr></tbody>
         </table>
+        <button class="trips-more" id="m-trips-more" style="display:none" onclick="toggleAllTrips()"></button>
       </div>
       <div class="card" id="m-route-card" style="display:none">
         <div class="card-title">Tracé du trajet <span id="m-route-when" style="color:var(--muted);font-weight:400;font-size:.85em"></span></div>
@@ -904,10 +910,12 @@ function sparkPath(arr, w, h, pad, mn, mx){
     return x.toFixed(1)+','+y.toFixed(1);
   }).join(' L');
 }
-function renderArea(id, arr, color){
+function renderArea(id, arr, color, unit, capId){
   var el = $(id); if(!el) return;
-  if(!arr || arr.length < 2){ el.innerHTML = ''; return; }
-  var d = sparkPath(arr, 100, 32, 3);
+  if(!arr || arr.length < 2){ el.innerHTML = ''; if(capId) txt(capId,'--'); return; }
+  var mn = Math.min.apply(null, arr), mx = Math.max.apply(null, arr);
+  if(capId) txt(capId, mn.toFixed(1)+'–'+mx.toFixed(1)+' '+unit);
+  var d = sparkPath(arr, 100, 32, 3, mn, mx);
   var gid = id + '-g';
   el.innerHTML =
     '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'+
@@ -926,6 +934,7 @@ function renderSparks(){
     if(all.length < 2){ el.innerHTML = ''; }
     else{
       var mn = Math.min.apply(null, all), mx = Math.max.apply(null, all);
+      txt('sc-temp', mn.toFixed(0)+'–'+mx.toFixed(0)+' °C');
       var html = '';
       series.forEach(function(s){
         var d = sparkPath(hist[s[0]], 100, 32, 3, mn, mx);
@@ -934,8 +943,8 @@ function renderSparks(){
       el.innerHTML = html;
     }
   }
-  renderArea('spark-volt', hist.volt, '#7c4dff');
-  renderArea('spark-curr', hist.curr, '#00d4aa');
+  renderArea('spark-volt', hist.volt, '#7c4dff', 'V', 'sc-volt');
+  renderArea('spark-curr', hist.curr, '#00d4aa', 'A', 'sc-curr');
 }
 
 // ─── FAVICON SOC ────────────────────────────────────────────
@@ -1394,49 +1403,43 @@ function showRoute(t){
 }
 
 function tripRowHTML(t){
-  return '<td>'+formatTripDate(t.ts)+'</td><td>'+t.dur+'min</td><td>'+t.dist+' km</td><td>'+t.vavg+' km/h</td>';
+  var v   = t.vmax+'/'+t.vavg;
+  var eff = (t.eff ? t.eff : '--');
+  var tt  = (t.tamb!=null?t.tamb:'--')+'/'+(t.tinv!=null?t.tinv:'--')+'/'+(t.tmot!=null?t.tmot:'--');
+  return '<td>'+formatTripDate(t.ts)+'</td><td>'+t.dur+'min</td><td>'+t.dist+' km</td>'+
+         '<td>'+v+'</td><td>'+t.bat+' %</td><td>'+eff+'</td><td>'+tt+'</td>';
+}
+var TRIPS_PAGE = 5;       // trajets visibles par défaut
+var _showAllTrips = false;
+function fillTripsBody(tbodyId, trips, limit){
+  var tbody = $(tbodyId);
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  trips.slice(0, limit).forEach(function(t){
+    var tr = document.createElement('tr');
+    tr.className = 'trip-main';
+    tr.innerHTML = tripRowHTML(t);
+    tr.onclick = function(){ showRoute(t); };  // clic → retrace le GPS
+    tbody.appendChild(tr);
+  });
 }
 function renderTripsTable(){
   var trips = getTrips(); if(!trips.length) return;
-  // desktop
-  var tbody = $('trips-body');
-  if(tbody){
-    tbody.innerHTML = '';
-    trips.slice(0,10).forEach(function(t, idx){
-      var tr = document.createElement('tr');
-      tr.className = 'trip-main';
-      tr.dataset.idx = idx;
-      tr.innerHTML = tripRowHTML(t);
-      tr.onclick = function(){ toggleTripExpand(this, t); };
-      tbody.appendChild(tr);
-    });
-  }
-  // mobile
-  var mtbody = $('m-trips-body');
-  if(mtbody){
-    mtbody.innerHTML = '';
-    trips.slice(0,10).forEach(function(t, idx){
-      var tr = document.createElement('tr');
-      tr.className = 'trip-main';
-      tr.innerHTML = tripRowHTML(t);
-      tr.onclick = function(){ toggleTripExpand(this, t); };
-      mtbody.appendChild(tr);
-    });
-  }
+  var limit = _showAllTrips ? trips.length : TRIPS_PAGE;
+  fillTripsBody('trips-body',   trips, limit);
+  fillTripsBody('m-trips-body', trips, limit);
+  // bouton « voir plus / moins » — masqué si ≤ TRIPS_PAGE trajets
+  var label = _showAllTrips ? 'Voir moins ▴' : ('Voir les '+(trips.length-TRIPS_PAGE)+' trajets antérieurs ▾');
+  [['trips-more'],['m-trips-more']].forEach(function(p){
+    var b = $(p[0]); if(!b) return;
+    b.style.display = trips.length > TRIPS_PAGE ? 'block' : 'none';
+    b.textContent = label;
+  });
   renderLastTrip(trips[0]);
 }
-
-function toggleTripExpand(tr, t){
-  showRoute(t);   // clic sur un trajet → retrace son tracé GPS
-  var next = tr.nextSibling;
-  if(next && next.classList && next.classList.contains('trip-expand')){
-    next.parentNode.removeChild(next);
-    return;
-  }
-  var exp = document.createElement('tr');
-  exp.className = 'trip-expand';
-  exp.innerHTML = '<td colspan="4">🔋 Bat. conso : <span>'+t.bat+' %</span> &nbsp;|&nbsp; ⚡ Vmax : <span>'+t.vmax+' km/h</span>'+(t.eff?' &nbsp;|&nbsp; 📈 Effic. : <span>'+t.eff+' Wh/km</span>':'')+'</td>';
-  tr.parentNode.insertBefore(exp, tr.nextSibling);
+function toggleAllTrips(){
+  _showAllTrips = !_showAllTrips;
+  renderTripsTable();
 }
 
 // ─── CELLS ───────────────────────────────────────────────────
