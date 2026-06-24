@@ -190,12 +190,14 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .tariff-row button{background:none;border:none;color:var(--accent,#4a9eff);cursor:pointer;font-size:1em;padding:0 2px}
 
 /* Trip table */
+.trips-scroll{max-height:188px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.trips-scroll::-webkit-scrollbar{width:6px}
+.trips-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .trips-table{width:100%;border-collapse:collapse;font-size:.8em}
-.trips-table th{color:var(--muted);font-size:.7em;text-transform:uppercase;letter-spacing:1px;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;font-weight:500}
+.trips-table th{color:var(--muted);font-size:.7em;text-transform:uppercase;letter-spacing:1px;padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;font-weight:500;position:sticky;top:0;background:rgba(17,19,28,.96);z-index:1}
+.trips-table th:first-child{text-align:left}
 .trips-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--text)}
 .trips-table tr:last-child td{border-bottom:none}
-.trips-more{margin-top:8px;width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);font-size:.72em;text-transform:uppercase;letter-spacing:1px;padding:6px;border-radius:6px;cursor:pointer}
-.trips-more:hover{background:rgba(255,255,255,.08);color:var(--text)}
 .trips-table tr.trip-main{cursor:pointer}
 .trips-table tr.trip-main:hover td{background:rgba(255,255,255,.04)}
 .trips-table td:not(:first-child){text-align:right;font-weight:600;color:var(--teal)}
@@ -486,11 +488,12 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
       Trajets récents
     </div>
-    <table class="trips-table">
-      <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Vmax/Moy<br>km/h</th><th>Bat.</th><th>Effic.<br>Wh/km</th><th>T° A/O/M<br>°C</th></tr></thead>
-      <tbody id="trips-body"><tr><td colspan="7" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet enregistré</td></tr></tbody>
-    </table>
-    <button class="trips-more" id="trips-more" style="display:none" onclick="toggleAllTrips()"></button>
+    <div class="trips-scroll">
+      <table class="trips-table">
+        <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Vmax/Moy<br>km/h</th><th>Bat.</th><th>Effic.<br>Wh/km</th><th>T° A/O/M<br>°C</th></tr></thead>
+        <tbody id="trips-body"><tr><td colspan="7" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet enregistré</td></tr></tbody>
+      </table>
+    </div>
   </div>
 
 </div>
@@ -771,11 +774,12 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
       </div>
       <div class="card">
         <div class="card-title">Trajets récents</div>
-        <table class="trips-table">
-          <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Vmax/Moy<br>km/h</th><th>Bat.</th><th>Effic.<br>Wh/km</th><th>T° A/O/M<br>°C</th></tr></thead>
-          <tbody id="m-trips-body"><tr><td colspan="7" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet</td></tr></tbody>
-        </table>
-        <button class="trips-more" id="m-trips-more" style="display:none" onclick="toggleAllTrips()"></button>
+        <div class="trips-scroll">
+          <table class="trips-table">
+            <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Vmax/Moy<br>km/h</th><th>Bat.</th><th>Effic.<br>Wh/km</th><th>T° A/O/M<br>°C</th></tr></thead>
+            <tbody id="m-trips-body"><tr><td colspan="7" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet</td></tr></tbody>
+          </table>
+        </div>
       </div>
       <div class="card" id="m-route-card" style="display:none">
         <div class="card-title">Tracé du trajet <span id="m-route-when" style="color:var(--muted);font-weight:400;font-size:.85em"></span></div>
@@ -1409,13 +1413,11 @@ function tripRowHTML(t){
   return '<td>'+formatTripDate(t.ts)+'</td><td>'+t.dur+'min</td><td>'+t.dist+' km</td>'+
          '<td>'+v+'</td><td>'+t.bat+' %</td><td>'+eff+'</td><td>'+tt+'</td>';
 }
-var TRIPS_PAGE = 5;       // trajets visibles par défaut
-var _showAllTrips = false;
-function fillTripsBody(tbodyId, trips, limit){
+function fillTripsBody(tbodyId, trips){
   var tbody = $(tbodyId);
   if(!tbody) return;
   tbody.innerHTML = '';
-  trips.slice(0, limit).forEach(function(t){
+  trips.forEach(function(t){
     var tr = document.createElement('tr');
     tr.className = 'trip-main';
     tr.innerHTML = tripRowHTML(t);
@@ -1424,22 +1426,12 @@ function fillTripsBody(tbodyId, trips, limit){
   });
 }
 function renderTripsTable(){
+  // Tous les trajets sont rendus ; .trips-scroll borne la hauteur (~5 lignes)
+  // et laisse défiler l'historique antérieur, en-tête sticky.
   var trips = getTrips(); if(!trips.length) return;
-  var limit = _showAllTrips ? trips.length : TRIPS_PAGE;
-  fillTripsBody('trips-body',   trips, limit);
-  fillTripsBody('m-trips-body', trips, limit);
-  // bouton « voir plus / moins » — masqué si ≤ TRIPS_PAGE trajets
-  var label = _showAllTrips ? 'Voir moins ▴' : ('Voir les '+(trips.length-TRIPS_PAGE)+' trajets antérieurs ▾');
-  [['trips-more'],['m-trips-more']].forEach(function(p){
-    var b = $(p[0]); if(!b) return;
-    b.style.display = trips.length > TRIPS_PAGE ? 'block' : 'none';
-    b.textContent = label;
-  });
+  fillTripsBody('trips-body',   trips);
+  fillTripsBody('m-trips-body', trips);
   renderLastTrip(trips[0]);
-}
-function toggleAllTrips(){
-  _showAllTrips = !_showAllTrips;
-  renderTripsTable();
 }
 
 // ─── CELLS ───────────────────────────────────────────────────
