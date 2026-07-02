@@ -178,11 +178,19 @@ def _on_trip_end(imei: str):
     if avg_spd > 120:
         logging.info('Trip rejected (avg %.0f km/h implausible)', avg_spd)
         return
-    if max_spd == 0 and avg_spd > 10:
-        logging.info('Trip rejected (no speed samples but avg %.0f km/h)', avg_spd)
+    # vmax = 0 → the scooter never moved. Catches parked "trips" where a 230V
+    # charge wakes the dashboard (status leaves {0,1,5}) and hours of GPS
+    # jitter accumulate > 0.1 km of haversine distance.
+    if max_spd == 0:
+        logging.info('Trip rejected (vmax=0 — no movement, GPS drift/charge)')
         return
     if dur_f < 1.5 and dist > 2:
         logging.info('Trip rejected (%.1f km in %.1f min)', dist, dur_f)
+        return
+    # SoC that RISES over a trip = charging session, not a ride (regen can
+    # never net-gain over a whole trip).
+    if bat is not None and bat < -2:
+        logging.info('Trip rejected (SoC +%.1f%% — charging session)', -bat)
         return
 
     # Energy efficiency in Wh/km from the SoC drop over the trip.
@@ -227,16 +235,36 @@ def _track_field(imei: str, field: str, val, now_ms: int):
     if imei not in _trip_fields:
         _trip_fields[imei] = {}
 
-    fields      = _trip_fields[imei]
-    prev_status = fields.get('status')
+    fields        = _trip_fields[imei]
+    prev_status   = fields.get('status')
+    prev_charging = fields.get('charging')
     fields[field] = val
 
     if field == 'status':
+        if val != prev_status:
+            logging.info('Status: %s -> %s (IMEI=%s)', prev_status, val, imei)
         prev_on = prev_status is not None and prev_status not in OFF_STATUSES
         curr_on = val is not None and val not in OFF_STATUSES
         if curr_on and not prev_on:
-            _on_trip_start(imei, now_ms)
+            # En charge 230V le scooter peut se réveiller avec un status "on"
+            # (dashboard allumé) sans que le moteur tourne — pas un trajet.
+            if fields.get('charging'):
+                logging.info('Trip start skipped (charging): IMEI=%s status=%s', imei, val)
+            else:
+                _on_trip_start(imei, now_ms)
         elif prev_on and not curr_on:
+            _on_trip_end(imei)
+
+    elif field == 'charging':
+        was, now = bool(prev_charging), bool(val)
+        st = fields.get('status')
+        st_on = st is not None and st not in OFF_STATUSES
+        if was and not now and st_on and imei not in _trip_active:
+            # Débranché avec status toujours "on" → le front OFF→ON n'arrivera
+            # pas, on démarre le trajet ici.
+            _on_trip_start(imei, now_ms)
+        elif now and not was and imei in _trip_active:
+            # Branché en cours de "trajet" → garé, on clôt.
             _on_trip_end(imei)
 
     elif field == 'speed' and imei in _trip_active and val is not None:
@@ -300,8 +328,8 @@ def on_message(client, userdata, msg):
             payload = json.loads(msg.payload)
             payload['dataTimestamp'] = now_ms
             imei = parts[2]
-            for field in ('status', 'speed', 'odo', 'SOCbatteria', 'BatterySoC',
-                          'latitude', 'longitude'):
+            for field in ('charging', 'status', 'speed', 'odo', 'SOCbatteria',
+                          'BatterySoC', 'latitude', 'longitude'):
                 if field in payload:
                     _track_field(imei, field, _parse_float(payload[field]), now_ms)
             client.publish(msg.topic, json.dumps(payload), qos=0, retain=True)

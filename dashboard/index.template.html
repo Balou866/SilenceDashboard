@@ -1325,8 +1325,9 @@ var trip = null, tripTimer = null, tripSpeeds = [];
 function trackTrip(d, speed, soc, odo){
   // Trip = session moteur allumé. status ∈ {0,1,5} = éteint (cf. relay.py
   // OFF_STATUSES) → un arrêt moteur tournant (feu rouge) ne coupe pas le trajet.
+  // charging = réveil par la charge 230V (status "on" sans rouler) ≠ trajet.
   var st = parseInt(d.status, 10);
-  var moving = !isNaN(st) && [0,1,5].indexOf(st) === -1;
+  var moving = !isNaN(st) && [0,1,5].indexOf(st) === -1 && !d.charging;
 
   if(moving && !trip){
     trip = { startTime:Date.now(), startOdo:odo, startSoc:soc, maxSpeed:speed };
