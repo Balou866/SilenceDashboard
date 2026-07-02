@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <!-- favicon dynamique (rond batterie + SOC) réservé à l'onglet, 32px -->
-<link id="dyn-favicon" rel="icon" type="image/png" sizes="32x32" href="">
+<link id="dyn-favicon" rel="icon" type="image/png" sizes="32x32" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#14143a">
 <meta name="mobile-web-app-capable" content="yes">
@@ -62,7 +62,9 @@ header{background:var(--hdr-tint);backdrop-filter:blur(14px);-webkit-backdrop-fi
 #vin-lbl{font-size:.65em;font-weight:400;opacity:.5;margin-left:10px;letter-spacing:.3px}
 /* ── THEME PICKER ── */
 #theme-picker{display:flex;align-items:center;gap:6px;margin-left:10px}
-.theme-swatch{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.35);cursor:pointer;padding:0;transition:transform .15s,border-color .15s;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.theme-swatch{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.35);cursor:pointer;padding:0;transition:transform .15s,border-color .15s;box-shadow:0 2px 6px rgba(0,0,0,.35);position:relative}
+/* zone tactile élargie (~34px) sans changer le visuel */
+.theme-swatch::after{content:'';position:absolute;inset:-8px;border-radius:50%}
 .theme-swatch:hover{transform:scale(1.15)}
 .theme-swatch.active{border-color:#fff;transform:scale(1.15)}
 .sw-aurora{background:linear-gradient(135deg,#2a4bd0,#7c2db0,#c8286f)}
@@ -83,7 +85,8 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
   .mobile-pages-track{display:flex;flex:1;transition:transform .3s ease;will-change:transform}
   .mobile-page{flex:0 0 100vw;min-width:0;display:flex;flex-direction:column;gap:12px;padding:10px 12px 72px}
   .mobile-dots{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:12px;padding:14px 0 calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--hdr-tint) 40%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:50}
-  .mobile-dot{width:9px;height:9px;border-radius:50%;background:var(--muted2);cursor:pointer;transition:background .2s,transform .2s}
+  .mobile-dot{width:9px;height:9px;border-radius:50%;background:var(--muted2);cursor:pointer;transition:background .2s,transform .2s;border:none;padding:0;position:relative}
+  .mobile-dot::after{content:'';position:absolute;inset:-12px}
   .mobile-dot.active{background:var(--teal);transform:scale(1.25)}
 }
 @media(min-width:681px){
@@ -104,7 +107,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 
 /* Command icon bar */
 .cmd-bar{display:flex;gap:8px;justify-content:space-around}
-.cmd-icon-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;background:var(--card);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-size:.68em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;transition:background .2s,color .2s;user-select:none}
+.cmd-icon-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;background:var(--card);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-size:.68em;font-family:inherit;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;transition:background .2s,color .2s;user-select:none}
 .cmd-icon-btn:hover{background:rgba(255,255,255,.13);color:#fff}
 .cmd-icon-btn:active{transform:scale(.95)}
 .cmd-icon-btn svg{width:22px;height:22px;opacity:.7}
@@ -200,7 +203,10 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .trips-table tr:last-child td{border-bottom:none}
 .trips-table tr.trip-main{cursor:pointer}
 .trips-table tr.trip-main:hover td{background:rgba(255,255,255,.04)}
+.trips-table tr.sel td{background:rgba(0,212,170,.12)}
 .trips-table td:not(:first-child){text-align:right;font-weight:600;color:var(--teal)}
+/* Écrans étroits : masque la colonne T° (7 colonnes trop serrées) */
+@media(max-width:400px){.trips-table th:nth-child(7),.trips-table td:nth-child(7){display:none}}
 
 /* ══════════════ DIAGNOSTICS COLUMN ══════════════ */
 .col-diag{display:flex;flex-direction:column;gap:12px}
@@ -218,15 +224,16 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .map-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:160px;display:flex;align-items:center;justify-content:center;position:relative}
 .map-placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:.85em;padding:20px}
 .map-placeholder span{font-size:2em}
-#map-iframe{width:100%;height:200px;border:none;display:none}
-#gps-addr{padding:8px 14px;font-size:.75em;color:var(--teal);border-top:1px solid var(--border);display:none}
 #gps-link-out{display:block;text-align:center;padding:8px;font-size:.75em;color:var(--muted);text-decoration:none;border-top:1px solid var(--border)}
 #gps-link-out:hover{color:var(--teal)}
 
-/* Trip route — Leaflet map (OSM tiles) */
+/* Trip route / position — Leaflet maps (OSM tiles) */
 .route-map{width:100%;height:220px;border-radius:10px;margin-top:6px;background:rgba(255,255,255,.04)}
-.route-map .leaflet-container{border-radius:10px;background:#1a1a2e}
-.route-map .leaflet-control-attribution{font-size:9px}
+.route-map.leaflet-container,.route-map .leaflet-container{border-radius:10px;background:#1a1a2e}
+.leaflet-control-attribution{font-size:9px;background:rgba(0,0,0,.5)!important;color:var(--muted)!important}
+.leaflet-control-attribution a{color:var(--teal)!important}
+/* Tuiles OSM assombries pour coller au thème (recette invert + hue-rotate) */
+.leaflet-tile{filter:brightness(.6) invert(1) contrast(3) hue-rotate(200deg) saturate(.3) brightness(.7)}
 
 /* Last trip stats */
 #lt-data,#m-lt-data{display:grid;grid-template-columns:1fr 1fr;column-gap:18px}
@@ -276,19 +283,25 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .spark-lbl{font-size:.6em;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px}
 .spark-cap{display:flex;justify-content:space-between;font-size:.58em;color:var(--muted);margin-top:-3px}
 
-/* Trip live card sticky on mobile */
-@media(max-width:680px){
-  #trip-live-card.sticky-mobile{
-    position:fixed;bottom:0;left:0;right:0;z-index:100;
-    border-radius:14px 14px 0 0;padding:12px 16px;
-    transform:translateY(0);transition:transform .3s ease;
-    background:#1b1336;border:1px solid var(--border)
-  }
+/* Trajet en cours — carte mobile dédiée, hors <main> (main est display:none
+   sur mobile, un position:fixed à l'intérieur resterait invisible) */
+#m-trip-live-card{display:none;position:fixed;left:10px;right:10px;bottom:calc(54px + env(safe-area-inset-bottom));z-index:99;background:#1b1336;padding:12px 16px}
+@media(min-width:681px){#m-trip-live-card{display:none!important}}
+
+/* État initial : cartes atténuées tant qu'aucune donnée (live, cache ou trips) */
+body.predata .card{opacity:.45;filter:grayscale(.4)}
+
+/* Accessibilité : respecte prefers-reduced-motion */
+@media(prefers-reduced-motion:reduce){
+  .lu-dot.live{animation:none}
+  .cmd-icon-btn.syncing svg{animation:none}
+  .mobile-pages-track{transition:none}
+  .card,.stats4,.cost4{transition:none}
 }
 
 </style>
 </head>
-<body>
+<body class="predata">
 
 <header>
   🛵 Silence Scooter<span id="vin-lbl"></span>
@@ -312,22 +325,22 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 
   <!-- Command icon buttons -->
   <div class="cmd-bar">
-    <div class="cmd-icon-btn js-sync" onclick="syncCmd()" title="Forcer une synchronisation du scooter">
+    <button type="button" class="cmd-icon-btn js-sync" onclick="syncCmd()" title="Forcer une synchronisation du scooter" aria-label="Synchroniser le scooter">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/></svg>
       Sync
-    </div>
-    <div class="cmd-icon-btn" onclick="cmd('OPEN_SEAT')">
+    </button>
+    <button type="button" class="cmd-icon-btn" onclick="cmd('OPEN_SEAT')" aria-label="Ouvrir la selle">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/><rect x="2" y="18" width="20" height="3" rx="1"/></svg>
       Selle
-    </div>
-    <div class="cmd-icon-btn" onclick="cmd('FLASH')">
+    </button>
+    <button type="button" class="cmd-icon-btn" onclick="cmd('FLASH')" aria-label="Flash des phares">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
       Flash
-    </div>
-    <div class="cmd-icon-btn" onclick="cmd('BEEP_FLASH')">
+    </button>
+    <button type="button" class="cmd-icon-btn" onclick="cmd('BEEP_FLASH')" aria-label="Bip sonore et flash">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
       Beep
-    </div>
+    </button>
   </div>
 
   <!-- ON / OFF -->
@@ -572,13 +585,12 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
     Position actuelle
   </div>
   <div class="map-card">
-    <iframe id="map-iframe" allowfullscreen style="display:none"></iframe>
+    <div id="pos-map" class="route-map" style="height:200px;margin:0;display:none"></div>
     <div class="map-placeholder" id="map-placeholder">
       <span>🗺️</span>
       <span>En attente du GPS…</span>
     </div>
   </div>
-  <div id="gps-addr"></div>
   <a id="gps-link-out" href="#" target="_blank">📍 Ouvrir dans Google Maps</a>
 
   <!-- Last trip (header + detail merged) -->
@@ -651,22 +663,22 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
     <div class="mobile-page" id="mp-0">
       <!-- Command icon buttons -->
       <div class="cmd-bar">
-        <div class="cmd-icon-btn js-sync" onclick="syncCmd()" title="Forcer une synchronisation du scooter">
+        <button type="button" class="cmd-icon-btn js-sync" onclick="syncCmd()" title="Forcer une synchronisation du scooter" aria-label="Synchroniser le scooter">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/></svg>
           Sync
-        </div>
-        <div class="cmd-icon-btn" onclick="cmd('OPEN_SEAT')">
+        </button>
+        <button type="button" class="cmd-icon-btn" onclick="cmd('OPEN_SEAT')" aria-label="Ouvrir la selle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/><rect x="2" y="18" width="20" height="3" rx="1"/></svg>
           Selle
-        </div>
-        <div class="cmd-icon-btn" onclick="cmd('FLASH')">
+        </button>
+        <button type="button" class="cmd-icon-btn" onclick="cmd('FLASH')" aria-label="Flash des phares">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           Flash
-        </div>
-        <div class="cmd-icon-btn" onclick="cmd('BEEP_FLASH')">
+        </button>
+        <button type="button" class="cmd-icon-btn" onclick="cmd('BEEP_FLASH')" aria-label="Bip sonore et flash">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
           Beep
-        </div>
+        </button>
       </div>
       <div class="onoff-row">
         <button class="btn btn-on" id="m-btn-on" onclick="confirmCmd(this,'TURN_ON_SCOOTER','▶ Allumer')">▶ Allumer</button>
@@ -746,7 +758,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
         Position actuelle
       </div>
       <div class="map-card">
-        <iframe id="m-map-iframe" allowfullscreen style="width:100%;height:200px;border:none;display:none"></iframe>
+        <div id="m-pos-map" class="route-map" style="height:200px;margin:0;display:none"></div>
         <div class="map-placeholder" id="m-map-placeholder">
           <span>🗺️</span><span>En attente du GPS…</span>
         </div>
@@ -784,6 +796,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
       <div class="card" id="m-route-card" style="display:none">
         <div class="card-title">Tracé du trajet <span id="m-route-when" style="color:var(--muted);font-weight:400;font-size:.85em"></span></div>
         <div id="m-route-map" class="route-map"></div>
+        <div id="m-route-empty" style="color:var(--muted);font-size:.78em;text-align:center;padding:14px">Pas de points GPS pour ce trajet</div>
       </div>
     </div>
 
@@ -836,13 +849,22 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
   </div><!-- /mobile-track -->
 
   <div class="mobile-dots">
-    <div class="mobile-dot active" onclick="goPage(0)"></div>
-    <div class="mobile-dot" onclick="goPage(1)"></div>
-    <div class="mobile-dot" onclick="goPage(2)"></div>
-    <div class="mobile-dot" onclick="goPage(3)"></div>
+    <button type="button" class="mobile-dot active" onclick="goPage(0)" aria-label="Page 1 — Contrôles"></button>
+    <button type="button" class="mobile-dot" onclick="goPage(1)" aria-label="Page 2 — Batterie et moteur"></button>
+    <button type="button" class="mobile-dot" onclick="goPage(2)" aria-label="Page 3 — GPS et trajets"></button>
+    <button type="button" class="mobile-dot" onclick="goPage(3)" aria-label="Page 4 — Diagnostics"></button>
   </div>
 </div>
 <!-- /mobile-pages -->
+
+<!-- Trajet en cours (mobile) — hors <main>, position:fixed au-dessus des dots -->
+<div class="card" id="m-trip-live-card">
+  <div class="card-title" style="color:var(--green)">● Trajet en cours</div>
+  <div style="font-size:1.8em;font-weight:700;text-align:center;margin:6px 0;color:var(--teal)" id="m-trip-timer">00:00</div>
+  <div class="lt-row"><span class="lt-icon-label">Distance</span><span class="lt-val" id="m-tr-dist">--</span></div>
+  <div class="lt-row"><span class="lt-icon-label">Bat. consommée</span><span class="lt-val" id="m-tr-bat">--</span></div>
+  <div class="lt-row"><span class="lt-icon-label">Vitesse max</span><span class="lt-val" id="m-tr-vmax">--</span></div>
+</div>
 
 <script>
 // ─── CONFIG ─────────────────────────────────────────────────
@@ -952,7 +974,7 @@ function renderSparks(){
 }
 
 // ─── FAVICON SOC ────────────────────────────────────────────
-var _favCanvas = null;
+var _favCanvas = null, _lastFavSoc = null;
 function updateFavicon(soc){
   if(!_favCanvas){
     _favCanvas = document.createElement('canvas');
@@ -982,9 +1004,18 @@ function updateFavicon(soc){
 }
 
 // ─── MQTT ────────────────────────────────────────────────────
-var client = mqtt.connect('ws://' + window.location.hostname + ':' + WS_PORT);
+// wss derrière un reverse-proxy HTTPS (sinon mixed content = connexion bloquée)
+var client = mqtt.connect((location.protocol === 'https:' ? 'wss' : 'ws') + '://' + window.location.hostname + ':' + WS_PORT);
 var lastData = {}, lastMsgTime = null, _dataFromCache = false, _saveTimer = null, lastConsPkm = null, lastOdo = 0;
-var _serverTrips = [], _lastGpsTime = null;
+var _serverTrips = [], _lastGpsTime = null, _lastTripTs = null;
+
+// Débounce du re-render : un burst MQTT (SYNC = dizaines de topics par champ)
+// ne déclenche qu'un update() toutes les 100 ms au lieu d'un par message.
+var _updTimer = null;
+function scheduleUpdate(){
+  if(_updTimer) return;
+  _updTimer = setTimeout(function(){ _updTimer = null; update(lastData); }, 100);
+}
 function scheduleSave(){
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function(){
@@ -996,6 +1027,7 @@ client.on('connect', function(){
   setConn(true);
   client.subscribe('home/silence-server/+/status');
   client.subscribe('home/silence-server/+/status/+');
+  fetchTrips();   // rafraîchit le tableau après reconnexion (veille, réseau)
 });
 client.on('offline',    function(){ setConn(false); });
 client.on('disconnect', function(){ setConn(false); });
@@ -1014,12 +1046,13 @@ client.on('message', function(t, m){
         return;
       }
       if(!lastData.dataTimestamp) lastMsgTime = Date.now();
-      update(lastData);
+      scheduleUpdate();
     } else {
       // old format: home/silence-server/<IMEI>/status → JSON payload
       var parsed = JSON.parse(m.toString());
       lastMsgTime = parsed.dataTimestamp || Date.now();
-      update(parsed);
+      lastData = parsed;
+      scheduleUpdate();
     }
     _dataFromCache = false;
     if(_syncing) stopSync();   // données fraîches reçues → fin de l'animation
@@ -1049,7 +1082,7 @@ function updateLastUpdate(){
     dots.forEach(function(el){ if(el){ el.classList.remove('live'); el.style.background='var(--yellow)'; } });
   } else {
     var s = Math.round((Date.now()-lastMsgTime)/1000);
-    label = s < 60 ? 'Il y a '+s+'s' : 'Il y a '+Math.round(s/60)+'min';
+    label = s < 60 ? 'Il y a '+s+'s' : s < 3600 ? 'Il y a '+Math.round(s/60)+'min' : 'Il y a '+Math.round(s/3600)+'h';
     isLive = s < 30;
     dots.forEach(function(el){
       if(!el) return;
@@ -1058,6 +1091,8 @@ function updateLastUpdate(){
     });
   }
   txt2('lu-txt', label);
+  // rafraîchit aussi le « il y a … » du dernier trajet, sinon figé entre deux fetch
+  if(_lastTripTs) txt2('lt-ago', timeAgo(_lastTripTs));
 }
 
 function cmd(c){ client.publish('home/silence-server/'+IMEI+'/command/'+c, ''); }
@@ -1106,6 +1141,7 @@ function resetBtn(btn, label){
 // ─── UPDATE ──────────────────────────────────────────────────
 function update(d){
   lastData = d;
+  document.body.classList.remove('predata');
 
   var soc     = d.SOCbatteria    ?? d.BatterySoC ?? 0;
   var voltage = d.VOLTbatteria   ?? 0;
@@ -1126,9 +1162,12 @@ function update(d){
 
   if(vin) txt('vin-lbl', 'VIN: '+vin);
 
-  // ── SOC color + favicon
+  // ── SOC color + favicon (favicon régénéré seulement si le % entier change)
   applySocColor(soc);
-  updateFavicon(soc);
+  if(Math.round(soc) !== _lastFavSoc){
+    _lastFavSoc = Math.round(soc);
+    updateFavicon(soc);
+  }
 
   // ── Status pill
   ['st-pill','m-st-pill'].forEach(function(id){
@@ -1146,7 +1185,7 @@ function update(d){
   txt2('s-bat',   Math.round(soc)+'%');
   txt2('s-speed', Math.round(speed));
   txt2('s-odo',   odo.toFixed(0));
-  txt2('s-batst', d.batteryIn===0 ? 'Absente' : d.charging ? 'Charge' : 'OK');
+  txt2('s-batst', d.batteryIn==null ? '--' : d.batteryIn===0 ? 'Absente' : d.charging ? 'Charge' : 'OK');
 
   // ── Motor card
   txt2('mot-rpm',  motorRPM   != null ? Math.round(motorRPM)      : '--');
@@ -1243,31 +1282,41 @@ function updateCosts(consPkm, odo){
   txt('c-y',  (cpkm * odo).toFixed(2)+'€');
 }
 
+// Position actuelle : carte Leaflet live — marqueur déplacé à chaque fix
+// (l'ancienne iframe OSM était figée sur le premier fix).
+var _posMarkers = {};   // mapId -> L.circleMarker
+
+function showPosMap(mapId, phId, lat, lon){
+  var o = _ensureMap(mapId);
+  if(!o) return;                      // Leaflet absent → garde le placeholder
+  var el = $(mapId);
+  if(el && el.style.display === 'none'){
+    el.style.display = 'block';
+    var ph = $(phId); if(ph) ph.style.display = 'none';
+  }
+  if(!_posMarkers[mapId]){
+    _posMarkers[mapId] = L.circleMarker([lat,lon], { radius:7, color:'#fff', weight:2, fillColor:(_cssVar('--teal')||'#00d4aa'), fillOpacity:1 }).addTo(o.map);
+    setTimeout(function(){ o.map.invalidateSize(); o.map.setView([lat,lon], 16); }, 60);
+  } else {
+    _posMarkers[mapId].setLatLng([lat,lon]);
+    // recentre seulement si le marqueur sort de la vue (n'écrase pas un pan manuel)
+    if(!o.map.getBounds().contains([lat,lon])) o.map.panTo([lat,lon]);
+  }
+}
+
 function updateGPS(d){
   if(!d.latitude || !d.longitude) return;
   var lat=parseFloat(d.latitude), lon=parseFloat(d.longitude);
+  if(isNaN(lat) || isNaN(lon)) return;
   _lastGpsTime = lastMsgTime || Date.now();
   var timeStr = new Date(_lastGpsTime).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var coordText = '📍 '+lat.toFixed(5)+', '+lon.toFixed(5)+' ('+timeStr+') — Ouvrir Maps';
-  // desktop
-  var iframe = document.getElementById('map-iframe');
-  if(iframe && iframe.style.display==='none'){
-    iframe.src = 'https://www.openstreetmap.org/export/embed.html?bbox='+(lon-.005)+','+(lat-.005)+','+(lon+.005)+','+(lat+.005)+'&layer=mapnik&marker='+lat+','+lon;
-    iframe.style.display = 'block';
-    var ph = document.getElementById('map-placeholder');
-    if(ph) ph.style.display = 'none';
-  }
-  var gl = $('gps-link-out');
-  if(gl){ gl.href='https://www.google.com/maps?q='+lat+','+lon; gl.textContent=coordText; }
-  // mobile
-  var mIframe = $('m-map-iframe');
-  if(mIframe && mIframe.style.display==='none'){
-    mIframe.src = 'https://www.openstreetmap.org/export/embed.html?bbox='+(lon-.005)+','+(lat-.005)+','+(lon+.005)+','+(lat+.005)+'&layer=mapnik&marker='+lat+','+lon;
-    mIframe.style.display = 'block';
-    var mph = $('m-map-placeholder'); if(mph) mph.style.display='none';
-  }
-  var mgl = $('m-gps-link-out');
-  if(mgl){ mgl.href='https://www.google.com/maps?q='+lat+','+lon; mgl.textContent=coordText; }
+  showPosMap('pos-map',   'map-placeholder',   lat, lon);
+  showPosMap('m-pos-map', 'm-map-placeholder', lat, lon);
+  [['gps-link-out'],['m-gps-link-out']].forEach(function(a){
+    var gl = $(a[0]);
+    if(gl){ gl.href='https://www.google.com/maps?q='+lat+','+lon; gl.textContent=coordText; }
+  });
 }
 
 // ─── TRIP TRACKING ───────────────────────────────────────────
@@ -1284,15 +1333,19 @@ function trackTrip(d, speed, soc, odo){
     tripSpeeds = [speed];
     clearInterval(tripTimer);
     tripTimer = setInterval(function(){
+      if(!trip) return;
       var s = Math.round((Date.now()-trip.startTime)/1000);
-      $('trip-timer').textContent = pad(Math.floor(s/60))+':'+pad(s%60);
-      txt('tr-dist', (odo-trip.startOdo).toFixed(1)+' km');
-      txt('tr-bat',  (trip.startSoc-lastData.SOCbatteria||lastData.BatterySoC||0).toFixed(1)+'%');
-      txt('tr-vmax', Math.round(trip.maxSpeed)+' km/h');
+      txt2('trip-timer', pad(Math.floor(s/60))+':'+pad(s%60));
+      // lastData.odo (live), pas l'argument odo figé dans la closure au départ
+      var curOdo = parseFloat(lastData.odo) || trip.startOdo;
+      txt2('tr-dist', (curOdo-trip.startOdo).toFixed(1)+' km');
+      var curSoc = lastData.SOCbatteria ?? lastData.BatterySoC;
+      txt2('tr-bat', curSoc!=null ? (trip.startSoc-curSoc).toFixed(1)+'%' : '--');
+      txt2('tr-vmax', Math.round(trip.maxSpeed)+' km/h');
     }, 1000);
-    var card = $('trip-live-card');
-    card.style.display = 'block';
-    if(window.innerWidth <= 680) card.classList.add('sticky-mobile');
+    ['trip-live-card','m-trip-live-card'].forEach(function(id){
+      var c=$(id); if(c) c.style.display='block';
+    });
   }
 
   if(trip && moving){
@@ -1317,9 +1370,9 @@ function trackTrip(d, speed, soc, odo){
     renderLastTrip(t);
     setTimeout(fetchTrips, 1500);
     trip = null; tripSpeeds = [];
-    var card = $('trip-live-card');
-    card.style.display = 'none';
-    card.classList.remove('sticky-mobile');
+    ['trip-live-card','m-trip-live-card'].forEach(function(id){
+      var c=$(id); if(c) c.style.display='none';
+    });
   }
 }
 
@@ -1345,11 +1398,12 @@ function formatTripDate(ts){
 function renderLastTrip(t){
   ['lt-empty','m-lt-empty'].forEach(function(id){ var e=$(id); if(e) e.style.display='none'; });
   ['lt-data','m-lt-data'].forEach(function(id){ var e=$(id); if(e) e.style.display='grid'; });
+  _lastTripTs = t.ts;
   txt2('lt-dist-big', t.dist+' km');
   txt2('lt-ago', timeAgo(t.ts));
-  txt2('lt-dur',  t.dur+' min');
+  txt2('lt-dur',  fmtDur(t.dur));
   txt2('lt-dist', t.dist+' km');
-  txt2('lt-bat',  t.bat+' %');
+  txt2('lt-bat',  t.bat!=null ? t.bat+' %' : '--');
   txt2('lt-vavg', t.vavg+' km/h');
   txt2('lt-vmax', t.vmax+' km/h');
   txt2('lt-eff',  t.eff ? t.eff+' Wh/km' : '--');
@@ -1402,16 +1456,17 @@ function renderRoute(path, mapId, whenId, cardId, emptyId, whenText){
 function showRoute(t){
   if(!t || t.path === undefined) return;  // trajet live sans tracé → garde l'affichage courant
   var when = t && t.ts ? formatTripDate(t.ts) : (t && t.date ? t.date : '');
-  renderRoute(t.path, 'route-map',   'route-when',  'route-card',  'route-empty', when);
-  renderRoute(t.path, 'm-route-map', 'm-route-when','m-route-card', null,         when);
+  renderRoute(t.path, 'route-map',   'route-when',  'route-card',  'route-empty',   when);
+  renderRoute(t.path, 'm-route-map', 'm-route-when','m-route-card','m-route-empty', when);
 }
 
 function tripRowHTML(t){
   var v   = t.vmax+'/'+t.vavg;
   var eff = (t.eff ? t.eff : '--');
+  var bat = (t.bat!=null ? t.bat+' %' : '--');
   var tt  = (t.tamb!=null?t.tamb:'--')+'/'+(t.tinv!=null?t.tinv:'--')+'/'+(t.tmot!=null?t.tmot:'--');
-  return '<td>'+formatTripDate(t.ts)+'</td><td>'+t.dur+'min</td><td>'+t.dist+' km</td>'+
-         '<td>'+v+'</td><td>'+t.bat+' %</td><td>'+eff+'</td><td>'+tt+'</td>';
+  return '<td>'+formatTripDate(t.ts)+'</td><td>'+fmtDur(t.dur)+'</td><td>'+t.dist+' km</td>'+
+         '<td>'+v+'</td><td>'+bat+'</td><td>'+eff+'</td><td>'+tt+'</td>';
 }
 function fillTripsBody(tbodyId, trips){
   var tbody = $(tbodyId);
@@ -1421,7 +1476,11 @@ function fillTripsBody(tbodyId, trips){
     var tr = document.createElement('tr');
     tr.className = 'trip-main';
     tr.innerHTML = tripRowHTML(t);
-    tr.onclick = function(){ showRoute(t); };  // clic → retrace le GPS
+    tr.onclick = function(){                   // clic → retrace le GPS
+      tbody.querySelectorAll('tr.sel').forEach(function(r){ r.classList.remove('sel'); });
+      tr.classList.add('sel');                 // feedback : ligne sélectionnée
+      showRoute(t);
+    };
     tbody.appendChild(tr);
   });
 }
@@ -1429,6 +1488,7 @@ function renderTripsTable(){
   // Tous les trajets sont rendus ; .trips-scroll borne la hauteur (~5 lignes)
   // et laisse défiler l'historique antérieur, en-tête sticky.
   var trips = getTrips(); if(!trips.length) return;
+  document.body.classList.remove('predata');   // des données existent
   fillTripsBody('trips-body',   trips);
   fillTripsBody('m-trips-body', trips);
   renderLastTrip(trips[0]);
@@ -1462,6 +1522,7 @@ function $(id){ return document.getElementById(id); }
 function txt(id,v){ var el=$(id); if(el) el.textContent=v; }
 function txt2(id,v){ txt(id,v); txt('m-'+id,v); }
 function pad(n){ return n<10?'0'+n:''+n; }
+function fmtDur(min){ min=Math.round(min); return min>=60 ? Math.floor(min/60)+'h'+pad(min%60) : min+'min'; }
 function hex4(n){ return '0x'+(n>>>0).toString(16).toUpperCase().padStart(4,'0'); }
 function setAlarmBadge(id,v){ var el=$(id); if(el) el.className='alarm-badge'+(v?' active':''); }
 function setDim(id,on){ var el=$(id); if(el) el.classList.toggle('dimmed', !!on); }
@@ -1482,7 +1543,7 @@ function timeAgo(ts){
 }
 // ─── MOBILE SWIPE / PAGES ────────────────────────────────────
 var _curPage = 0;
-var _touchStartX = 0;
+var _touchStartX = 0, _touchStartY = 0, _touchOnMap = false;
 
 function goPage(n){
   var track = $('mobile-track');
@@ -1498,10 +1559,16 @@ function goPage(n){
   if(!pages) return;
   pages.addEventListener('touchstart', function(e){
     _touchStartX = e.touches[0].clientX;
+    _touchStartY = e.touches[0].clientY;
+    // pan sur une carte Leaflet ≠ swipe de page
+    _touchOnMap = !!(e.target.closest && e.target.closest('.leaflet-container'));
   }, {passive:true});
   pages.addEventListener('touchend', function(e){
+    if(_touchOnMap) return;
     var dx = e.changedTouches[0].clientX - _touchStartX;
-    if(Math.abs(dx) > 40){
+    var dy = e.changedTouches[0].clientY - _touchStartY;
+    // geste majoritairement horizontal, sinon c'est un scroll vertical
+    if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)){
       if(dx < 0) goPage(_curPage + 1);
       else goPage(_curPage - 1);
     }
@@ -1525,6 +1592,9 @@ function goPage(n){
 })();
 updateLastUpdate();
 setInterval(updateLastUpdate, 10000);
+// Poll léger : tableau à jour même si ce client n'a pas vu la fin du trajet
+// (onglet en veille, trajet enregistré par le relay pendant l'absence).
+setInterval(fetchTrips, 60000);
 
 // ─── SPARKLINE SAMPLING (cadence fixe, indépendante du débit MQTT) ──
 function sampleSparks(){

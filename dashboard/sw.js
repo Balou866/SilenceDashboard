@@ -1,5 +1,5 @@
 // Service worker Silence Dashboard — réseau d'abord, cache en repli (offline shell).
-const CACHE = 'silence-v2';
+const CACHE = 'silence-v3';
 const ASSETS = [
   '/', '/index.html', '/mqtt.min.js', '/rambo-silence.png',
   '/manifest.json', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png',
@@ -35,6 +35,12 @@ self.addEventListener('fetch', (e) => {
         caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
         return resp;
       })
-      .catch(() => caches.match(req).then((m) => m || caches.match('/index.html')))
+      .catch(() => caches.match(req).then((m) => {
+        if (m) return m;
+        // Repli index.html réservé aux navigations — un asset manquant ne doit
+        // pas recevoir du HTML (mauvais MIME).
+        if (req.mode === 'navigate') return caches.match('/index.html');
+        return Response.error();
+      }))
   );
 });
