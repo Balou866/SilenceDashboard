@@ -81,11 +81,17 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 /* ── MOBILE PAGES ── */
 @media(max-width:680px){
   main{display:none}
-  .mobile-pages{display:flex;flex-direction:column;min-height:100vh;padding:0;overflow:hidden}
-  .mobile-pages-track{display:flex;flex:1;transition:transform .3s ease;will-change:transform}
+  /* Hauteur verrouillée au viewport (moins le header 52px) : le document ne
+     scrolle pas ; chaque page scrolle son propre contenu. Sans ça, la piste
+     flex étire toutes les pages à la hauteur de la plus grande → on peut
+     scroller dans le vide sur les pages courtes. */
+  .mobile-pages{display:flex;flex-direction:column;height:calc(100vh - 52px);height:calc(100dvh - 52px);padding:0;overflow:hidden}
+  .mobile-pages-track{display:flex;flex:1;min-height:0;transition:transform .3s ease;will-change:transform}
   /* 100% (largeur réelle du conteneur), pas 100vw : le vw inclut d'éventuels
      scrollbar/insets → pages plus larges que la piste = bande visible au swipe */
-  .mobile-page{flex:0 0 100%;min-width:0;display:flex;flex-direction:column;gap:12px;padding:10px 12px 72px}
+  .mobile-page{flex:0 0 100%;min-width:0;display:flex;flex-direction:column;gap:12px;padding:10px 12px 72px;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  /* colonne flex à hauteur fixe : sans ça les cartes se compressent au lieu de déborder */
+  .mobile-page > *{flex-shrink:0}
   .mobile-dots{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:4px;padding:8px 0 calc(8px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--hdr-tint) 40%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:50}
   .mobile-dot{width:28px;height:28px;border:none;background:none;padding:0;cursor:pointer;position:relative;border-radius:50%}
   .mobile-dot::after{content:'';position:absolute;inset:0;margin:auto;width:9px;height:9px;border-radius:50%;background:var(--muted2);transition:background .2s,transform .2s}
