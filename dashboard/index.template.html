@@ -36,7 +36,10 @@
 }
 
 html,body{height:100%;color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
-body{background:var(--page-bg);background-attachment:fixed;background-size:cover;font-variant-numeric:tabular-nums}
+/* fond de secours sous le dégradé : jamais de blanc si le viewport dépasse
+   (overscroll, swipe, background-attachment ignoré sur mobile) */
+html{background:#0d1f33}
+body{background:var(--page-bg);background-attachment:fixed;background-size:cover;font-variant-numeric:tabular-nums;overflow-x:hidden}
 :focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
@@ -48,6 +51,15 @@ header{background:var(--hdr-tint);backdrop-filter:blur(14px);-webkit-backdrop-fi
 .hdot{width:8px;height:8px;border-radius:50%;background:var(--red);transition:background .3s}
 .hdot.ok{background:var(--green);box-shadow:0 0 8px var(--green)}
 #vin-lbl{font-size:.65em;font-weight:400;opacity:.5;margin-left:10px;letter-spacing:.3px}
+/* Header compact sur mobile : le dot suffit (l'étiquette et le VIN sautent) */
+@media(max-width:680px){
+  header{padding:0 12px;font-size:.92em}
+  #vin-lbl,#hlbl{display:none}
+  #hdr-conn{gap:6px}
+  #mode-toggle{margin-left:8px}
+  .mode-btn{padding:4px 10px;font-size:.78em}
+}
+
 /* ── MODE SOBRE / TECHNIQUE ── */
 #mode-toggle{display:flex;align-items:center;margin-left:10px;border:1px solid var(--border);border-radius:20px;overflow:hidden}
 .mode-btn{background:none;border:none;color:var(--muted);font-family:inherit;font-size:.82em;padding:4px 12px;cursor:pointer;transition:background .2s,color .2s;min-height:26px}
@@ -71,7 +83,9 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
   main{display:none}
   .mobile-pages{display:flex;flex-direction:column;min-height:100vh;padding:0;overflow:hidden}
   .mobile-pages-track{display:flex;flex:1;transition:transform .3s ease;will-change:transform}
-  .mobile-page{flex:0 0 100vw;min-width:0;display:flex;flex-direction:column;gap:12px;padding:10px 12px 72px}
+  /* 100% (largeur réelle du conteneur), pas 100vw : le vw inclut d'éventuels
+     scrollbar/insets → pages plus larges que la piste = bande visible au swipe */
+  .mobile-page{flex:0 0 100%;min-width:0;display:flex;flex-direction:column;gap:12px;padding:10px 12px 72px}
   .mobile-dots{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:4px;padding:8px 0 calc(8px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--hdr-tint) 40%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:50}
   .mobile-dot{width:28px;height:28px;border:none;background:none;padding:0;cursor:pointer;position:relative;border-radius:50%}
   .mobile-dot::after{content:'';position:absolute;inset:0;margin:auto;width:9px;height:9px;border-radius:50%;background:var(--muted2);transition:background .2s,transform .2s}
@@ -1071,6 +1085,7 @@ client.on('message', function(t, m){
 
 function setConn(ok){
   $('hdot').className = 'hdot' + (ok ? ' ok' : '');
+  $('hdot').title = ok ? 'Connecté' : 'Déconnecté';   // l'étiquette est masquée sur mobile
   $('hlbl').textContent = ok ? 'Connecté' : 'Déconnecté';
   $('lu-dot').style.background = ok ? 'var(--green)' : 'var(--red)';
   var mDot = $('m-lu-dot');
@@ -1582,7 +1597,8 @@ function goPage(n){
   var track = $('mobile-track');
   if(!track) return;
   _curPage = Math.max(0, Math.min(maxPage(), n));
-  track.style.transform = 'translateX(-'+ (_curPage * 100) +'vw)';
+  // % de la largeur de la piste (= viewport), pas vw : cohérent avec flex-basis 100%
+  track.style.transform = 'translateX(-'+ (_curPage * 100) +'%)';
   var dots = document.querySelectorAll('.mobile-dot');
   dots.forEach(function(d,i){ d.classList.toggle('active', i===_curPage); });
 }
