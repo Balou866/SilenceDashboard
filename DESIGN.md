@@ -3,9 +3,12 @@ name: Silence Dashboard
 description: Cockpit MQTT local pour scooter Silence S01 — télémétrie temps réel, commandes et historique de trajets
 colors:
   teal-electrique: "#00D4AA"
-  nuit-profonde: "#14143A"
-  violet-aurora: "#4A2060"
-  magenta-aurora: "#C8286F"
+  nuit-teal: "#0D1F33"
+  bleu-nuit: "#1A2150"
+  violet-nuit: "#3A1F5C"
+  magenta-nuit: "#561F50"
+  bleu-route: "#2196F3"
+  lavande-charge: "#B39DDB"
   vert-ok: "#4CAF50"
   jaune-alerte: "#FF9800"
   rouge-critique: "#F44336"
@@ -87,9 +90,9 @@ components:
 
 **Creative North Star : « Le garage personnel »**
 
-L'atelier du passionné, la nuit : un fond d'aurore sombre (dégradés bleu → violet → magenta), et posés dessus, des instruments en verre où chaque chiffre a sa place. L'interface est dense mais calme — beaucoup d'informations, zéro bruit. Les valeurs de télémétrie sont les vedettes (grosses, en gras, en teal électrique) ; tout le reste (étiquettes, bordures, titres de cartes) s'efface en majuscules discrètes et en blanc atténué. Le système rejette explicitement l'app constructeur (simpliste, qui cache la télémétrie) et l'admin SaaS froid (gris/blanc corporate sans personnalité).
+L'atelier du passionné, la nuit : un fond de nuit teal (dégradé teal → bleu → violet → magenta, halos radiaux teal et magenta), et posés dessus, des instruments en verre où chaque chiffre a sa place. L'interface est dense mais calme — beaucoup d'informations, zéro bruit. Les valeurs de télémétrie sont les vedettes (grosses, en gras, en teal électrique) ; tout le reste (étiquettes, bordures, titres de cartes) s'efface en majuscules discrètes et en blanc atténué. Le système rejette explicitement l'app constructeur (simpliste, qui cache la télémétrie) et l'admin SaaS froid (gris/blanc corporate sans personnalité).
 
-Trois thèmes de fond (aurora, indigo, teal) déclinent la même nuit colorée ; le vocabulaire des cartes et des valeurs ne change jamais avec le thème. Le mode d'affichage cible est double : sobre (l'essentiel) et technique (le cockpit complet) — le second est un sur-ensemble du premier, jamais un autre design.
+Un seul thème de fond (teal) — les anciens presets aurora/indigo ont été retirés. Le mode d'affichage est double, commuté depuis l'en-tête et persistant (`localStorage.mode`) : **sobre** (défaut : batterie, autonomie, statut, trajets, position) et **technique** (le cockpit complet : moteur, BMS, cellules, coûts, diagnostics). Le technique est un sur-ensemble du sobre (classe `tech` masquée), jamais un autre design.
 
 **Key Characteristics:**
 - Fond dégradé aurore fixe, cartes en verre flouté par-dessus (une seule couche)
@@ -107,6 +110,7 @@ Une nuit d'aurore saturée portée par le fond, une seule voix accentuée : le t
 
 ### Secondary
 - **Sémantique d'état** — Vert OK (#4CAF50), Jaune alerte (#FF9800), Rouge critique (#F44336) : température, tension cellules, SOC, alarmes. Le violet mesure (#7C4DFF) porte la tension dans les sparklines.
+- **Teintes de pastille de statut** — Bleu route (#2196F3, « En route ») et Lavande charge (#B39DDB, « En charge ») complètent la sémantique ; la veille utilise un gris-bleu discret (rgba(124,140,180,.22)).
 - La couleur SOC est **continue** (HSL rouge→vert calculé par `getSocColor`), appliquée via `--soc-color`.
 
 ### Neutral
@@ -114,7 +118,7 @@ Une nuit d'aurore saturée portée par le fond, une seule voix accentuée : le t
 - **Encre muette** (#FFFFFFA8, `--muted`) : étiquettes, titres de cartes, texte secondaire. Plancher de contraste : ne jamais descendre sous cette opacité pour du texte porteur d'information.
 - **Encre éteinte** (#FFFFFF52, `--muted2`) : états inactifs uniquement (badges d'alarme au repos, dots de page).
 - **Verre** (#FFFFFF17, `--card`) et **Trait de verre** (#FFFFFF29, `--border`) : surface et bordure de toutes les cartes.
-- **Nuit profonde** (#14143A) → **Violet aurora** (#4A2060) → **Magenta aurora** (#C8286F) : les jalons du dégradé de fond du thème par défaut.
+- **Nuit teal** (#0D1F33) → **Bleu nuit** (#1A2150) → **Violet nuit** (#3A1F5C) → **Magenta nuit** (#561F50) : les jalons du dégradé de fond, réchauffé par deux halos radiaux (magenta rgba(190,40,130,.32) et teal rgba(0,180,170,.18)).
 
 ### Named Rules
 **La règle du teal parlant.** Le teal signale une donnée vivante ou une action en cours. S'il apparaît sur un élément purement décoratif, c'est une faute.
@@ -153,10 +157,13 @@ Le verre EST la hiérarchie : une couche unique de cartes translucides floutées
 
 Denses et calmes : beaucoup d'infos, zéro bruit — bordures fines, étiquettes discrètes, chiffres en vedette.
 
+### Commutateur de mode (signature)
+- Segmented control en en-tête (Sobre | Technique), pill 20px, segment actif en teal translucide 18%. Persistant (`localStorage.mode`), raccourci clavier M. Le sobre masque la classe `tech` ; la grille desktop se resserre en 3 colonnes.
+
 ### Buttons
 - **Shape:** coins nets arrondis (10px boutons pleins, 12px boutons de commande)
 - **Allumer / Éteindre:** aplats francs vert #4CAF50 / rouge #F44336, texte blanc 700 ; double confirmation obligatoire (état `pending` = bordure blanche pointillée, libellé « Confirmer ? », timeout 2.5s)
-- **Commandes (Sync/Selle/Flash/Beep):** vrais `<button>` verre + icône SVG trait 2 + libellé majuscules ; hover éclaircit le verre, sync en cours = icône en rotation teal
+- **Commandes (Sync/Selle/Flash/Beep):** vrais `<button>` verre + icône SVG trait 2 + libellé majuscules ; hover éclaircit le verre, sync en cours = icône en rotation teal. **Toute commande répond par un toast** (`#toast`, bas d'écran, role=status) : envoyée, hors-ligne ou échec
 - **Hover / Focus:** hover `brightness(1.1)` sur aplats ; `:focus-visible` = anneau teal 2px offset 2px, partout
 
 ### Cards / Containers

@@ -5,8 +5,10 @@
   "extensions": {
     "colorMeta": {
       "teal-electrique": { "role": "primary", "displayName": "Teal électrique", "canonical": "#00D4AA", "tonalRamp": ["#00261E", "#00453A", "#006B58", "#009278", "#00D4AA", "#4DE3C4", "#93EEDA", "#D3F9F0"] },
-      "nuit-profonde": { "role": "neutral", "displayName": "Nuit profonde", "canonical": "#14143A", "tonalRamp": ["#0A0A1E", "#14143A", "#232360", "#353586", "#4B4BA8", "#6F6FC2", "#9C9CD9", "#CFCFEF"] },
-      "magenta-aurora": { "role": "secondary", "displayName": "Magenta aurora", "canonical": "#C8286F", "tonalRamp": ["#2E0818", "#571030", "#821A49", "#A52159", "#C8286F", "#D95E92", "#E895B7", "#F6CEDF"] },
+      "nuit-teal": { "role": "neutral", "displayName": "Nuit teal", "canonical": "#0D1F33", "tonalRamp": ["#060F19", "#0D1F33", "#16334F", "#21486C", "#2E5F8B", "#4A7BA6", "#7BA0C2", "#B4CCDF"] },
+      "bleu-nuit": { "role": "neutral", "displayName": "Bleu nuit", "canonical": "#1A2150", "tonalRamp": ["#0C0F26", "#1A2150", "#293378", "#3A47A0", "#5060C0", "#7683D2", "#A0AAE2", "#CDD2F1"] },
+      "magenta-nuit": { "role": "neutral", "displayName": "Magenta nuit", "canonical": "#561F50", "tonalRamp": ["#2A0F27", "#561F50", "#7D2E74", "#A43E99", "#C455B8", "#D57ECB", "#E4A8DD", "#F2D3EE"] },
+      "bleu-route": { "role": "secondary", "displayName": "Bleu route", "canonical": "#2196F3", "tonalRamp": ["#082A44", "#0F4A78", "#166BAD", "#1C86DA", "#2196F3", "#5BB1F6", "#93CBF9", "#CBE5FC"] },
       "vert-ok": { "role": "secondary", "displayName": "Vert OK", "canonical": "#4CAF50", "tonalRamp": ["#0E2A10", "#1D4A20", "#2E6B31", "#3D8F41", "#4CAF50", "#74C377", "#A2D8A4", "#D3EED4"] },
       "jaune-alerte": { "role": "secondary", "displayName": "Jaune alerte", "canonical": "#FF9800", "tonalRamp": ["#3D2400", "#6B3F00", "#9C5C00", "#CC7A00", "#FF9800", "#FFB246", "#FFCC85", "#FFE6C2"] },
       "rouge-critique": { "role": "secondary", "displayName": "Rouge critique", "canonical": "#F44336", "tonalRamp": ["#3B0F0B", "#6B1B14", "#9E281E", "#CC3529", "#F44336", "#F7746A", "#FAA49D", "#FDD3D0"] },
@@ -87,9 +89,10 @@
   ],
   "narrative": {
     "northStar": "Le garage personnel",
-    "overview": "L'atelier du passionné, la nuit : un fond d'aurore sombre (dégradés bleu → violet → magenta), et posés dessus, des instruments en verre où chaque chiffre a sa place. L'interface est dense mais calme : beaucoup d'informations, zéro bruit. Les valeurs de télémétrie sont les vedettes (grosses, en gras, en teal électrique) ; tout le reste s'efface en majuscules discrètes et en blanc atténué. Le système rejette explicitement l'app constructeur (simpliste, qui cache la télémétrie) et l'admin SaaS froid (gris/blanc corporate sans personnalité).",
+    "overview": "L'atelier du passionné, la nuit : un fond de nuit teal (dégradé teal → bleu → violet → magenta), et posés dessus, des instruments en verre où chaque chiffre a sa place. L'interface est dense mais calme : beaucoup d'informations, zéro bruit. Deux modes commutables : sobre (défaut, l'essentiel) et technique (le cockpit complet, sur-ensemble du sobre). Les valeurs de télémétrie sont les vedettes (grosses, en gras, en teal électrique) ; tout le reste s'efface en majuscules discrètes et en blanc atténué. Le système rejette explicitement l'app constructeur (simpliste, qui cache la télémétrie) et l'admin SaaS froid (gris/blanc corporate sans personnalité).",
     "keyCharacteristics": [
-      "Fond dégradé aurore fixe, cartes en verre flouté par-dessus (une seule couche)",
+      "Fond dégradé nuit-teal fixe, cartes en verre flouté par-dessus (une seule couche)",
+      "Deux modes : sobre (défaut) et technique — le second est un sur-ensemble du premier (classe tech)",
       "Chiffres télémétrie en vedette : gras, tabular-nums, teal électrique",
       "Étiquettes en capitales espacées, blanc atténué — jamais en concurrence avec les valeurs",
       "Sémantique d'état continue : la couleur SOC glisse du rouge au vert, jamais par paliers",
