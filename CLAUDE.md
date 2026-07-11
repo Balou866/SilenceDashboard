@@ -9,6 +9,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - L'installation se fait uniquement via Portainer (modification du docker-compose via stack)
 - **Toujours synchroniser le bloc `docker-compose` dans README.md** quand `docker-compose.yml` est modifié — le README contient une copie complète du compose pour Portainer
 
+## Design Context
+
+- `PRODUCT.md` (racine) — register `product`, utilisateurs, positionnement, principes de design. À lire avant tout travail UI.
+- `DESIGN.md` (racine) — système visuel : tokens (couleurs/typo/radius), règles nommées (verre unique, teal parlant, gris honnête, chiffres vedettes), do's & don'ts. Sidecar machine : `.impeccable/design.json`.
+- Toute passe design passe par le skill `/impeccable` (installé globalement), qui lit ces deux fichiers.
+
 ## Project Overview
 
 Silence-Dashboard est une stack Docker auto-hébergée pour piloter un scooter Silence S01 / SEAT MÓ depuis un navigateur. La page HTML se connecte directement au broker MQTT via WebSocket — pas de middleware comme Node-RED.

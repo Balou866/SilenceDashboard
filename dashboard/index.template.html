@@ -22,7 +22,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --card:rgba(255,255,255,.09);--border:rgba(255,255,255,.16);
-  --text:#fff;--muted:rgba(255,255,255,.5);--muted2:rgba(255,255,255,.28);
+  --text:#fff;--muted:rgba(255,255,255,.66);--muted2:rgba(255,255,255,.32);
   --teal:#00d4aa;--blue:#1565c0;
   --green:#4caf50;--yellow:#ff9800;--red:#f44336;--purple:#7c4dff;
   --soc-color:#4caf50;
@@ -52,7 +52,11 @@ body[data-theme="teal"]{
 }
 
 html,body{height:100%;color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
-body{background:var(--page-bg);background-attachment:fixed;background-size:cover}
+body{background:var(--page-bg);background-attachment:fixed;background-size:cover;font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
 
 /* ── HEADER ── */
 header{background:var(--hdr-tint);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);height:52px;display:flex;align-items:center;padding:0 18px;font-size:1em;font-weight:600;letter-spacing:.5px;position:sticky;top:0;z-index:20;box-shadow:0 1px 0 rgba(255,255,255,.06),0 4px 20px rgba(0,0,0,.35);border-bottom:1px solid rgba(255,255,255,.07)}
@@ -82,9 +86,10 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
   .mobile-pages{display:flex;flex-direction:column;min-height:100vh;padding:0;overflow:hidden}
   .mobile-pages-track{display:flex;flex:1;transition:transform .3s ease;will-change:transform}
   .mobile-page{flex:0 0 100vw;min-width:0;display:flex;flex-direction:column;gap:12px;padding:10px 12px 72px}
-  .mobile-dots{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:12px;padding:14px 0 calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--hdr-tint) 40%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:50}
-  .mobile-dot{width:9px;height:9px;border-radius:50%;background:var(--muted2);cursor:pointer;transition:background .2s,transform .2s}
-  .mobile-dot.active{background:var(--teal);transform:scale(1.25)}
+  .mobile-dots{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:4px;padding:8px 0 calc(8px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--hdr-tint) 40%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:50}
+  .mobile-dot{width:28px;height:28px;border:none;background:none;padding:0;cursor:pointer;position:relative;border-radius:50%}
+  .mobile-dot::after{content:'';position:absolute;inset:0;margin:auto;width:9px;height:9px;border-radius:50%;background:var(--muted2);transition:background .2s,transform .2s}
+  .mobile-dot.active::after{background:var(--teal);transform:scale(1.25)}
 }
 @media(min-width:681px){
   .mobile-pages{display:none}
@@ -104,7 +109,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 
 /* Command icon bar */
 .cmd-bar{display:flex;gap:8px;justify-content:space-around}
-.cmd-icon-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;background:var(--card);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-size:.68em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;transition:background .2s,color .2s;user-select:none}
+.cmd-icon-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;background:var(--card);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-family:inherit;font-size:.68em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;transition:background .2s,color .2s;user-select:none}
 .cmd-icon-btn:hover{background:rgba(255,255,255,.13);color:#fff}
 .cmd-icon-btn:active{transform:scale(.95)}
 .cmd-icon-btn svg{width:22px;height:22px;opacity:.7}
@@ -117,6 +122,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 /* ON / OFF buttons */
 .onoff-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .btn{border:none;border-radius:10px;font-weight:700;font-size:.85em;cursor:pointer;padding:11px;transition:opacity .15s,transform .1s,border .15s;letter-spacing:.3px;border:2px solid transparent}
+.btn:hover{filter:brightness(1.1)}
 .btn:active{transform:scale(.96);opacity:.8}
 .btn-on{background:var(--green);color:#fff}
 .btn-off{background:var(--red);color:#fff}
@@ -141,17 +147,17 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .st-cell{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;background:var(--card);border:1px solid var(--border);border-radius:10px}
 .st-icon{font-size:1.1em;opacity:.7}
 .st-val{font-size:.85em;font-weight:700;color:var(--teal)}
-.st-label{font-size:.58em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.st-label{font-size:.62em;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
 
 /* Usage stats */
 .usage-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
 .usage-val{font-size:.95em;font-weight:700;color:var(--teal)}
-.usage-label{font-size:.58em;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
+.usage-label{font-size:.62em;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
 
 /* Battery health summary */
 .bh-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
 .bh-val{font-size:.95em;font-weight:700;color:var(--text)}
-.bh-label{font-size:.58em;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
+.bh-label{font-size:.62em;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
 
 /* ══════════════ MIDDLE COLUMN ══════════════ */
 .col-mid{display:flex;flex-direction:column;gap:12px}
@@ -184,8 +190,8 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .cost4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .c4cell{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px;text-align:center}
 .c4val{font-size:.95em;font-weight:700;color:var(--text)}
-.c4label{font-size:.58em;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
-.tariff-row{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:.72em;color:var(--muted)}
+.c4label{font-size:.62em;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
+.tariff-row{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:.75em;color:var(--muted)}
 .tariff-row input{width:62px;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:2px 5px;font-size:1em;text-align:right}
 .tariff-row button{background:none;border:none;color:var(--accent,#4a9eff);cursor:pointer;font-size:1em;padding:0 2px}
 
@@ -199,7 +205,8 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .trips-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--text)}
 .trips-table tr:last-child td{border-bottom:none}
 .trips-table tr.trip-main{cursor:pointer}
-.trips-table tr.trip-main:hover td{background:rgba(255,255,255,.04)}
+.trips-table tr.trip-main:hover td,.trips-table tr.trip-main:focus-visible td{background:rgba(255,255,255,.06)}
+.trips-table tr.trip-main:focus-visible{outline:none}
 .trips-table td:not(:first-child){text-align:right;font-weight:600;color:var(--teal)}
 
 /* ══════════════ DIAGNOSTICS COLUMN ══════════════ */
@@ -252,7 +259,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 /* CELLS (details panel) */
 .cells-14{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
 .cellv{background:rgba(255,255,255,.04);border-radius:6px;padding:6px 2px;text-align:center;border:1px solid var(--border)}
-.cellv-n{font-size:.55em;color:var(--muted)}
+.cellv-n{font-size:.6em;color:var(--muted)}
 .cellv-v{font-size:.72em;font-weight:700;margin-top:1px}
 .cv-ok{color:var(--green)}
 .cv-warn{color:var(--yellow)}
@@ -274,7 +281,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .spark-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
 .spark-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .spark-lbl{font-size:.6em;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px}
-.spark-cap{display:flex;justify-content:space-between;font-size:.58em;color:var(--muted);margin-top:-3px}
+.spark-cap{display:flex;justify-content:space-between;font-size:.62em;color:var(--muted);margin-top:-3px}
 
 /* Trip live card sticky on mobile */
 @media(max-width:680px){
@@ -296,9 +303,9 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
     <div class="hdot" id="hdot"></div>
     <span id="hlbl">Connexion…</span>
     <div id="theme-picker">
-      <button class="theme-swatch sw-aurora" data-theme="aurora" onclick="setTheme('aurora')" title="Aurora — Bleu→Violet→Magenta"></button>
-      <button class="theme-swatch sw-indigo" data-theme="indigo" onclick="setTheme('indigo')" title="Indigo — Pourpre sobre"></button>
-      <button class="theme-swatch sw-teal" data-theme="teal" onclick="setTheme('teal')" title="Teal — Teal→Bleu→Magenta"></button>
+      <button class="theme-swatch sw-aurora" data-theme="aurora" onclick="setTheme('aurora')" title="Aurora — Bleu→Violet→Magenta" aria-label="Thème Aurora"></button>
+      <button class="theme-swatch sw-indigo" data-theme="indigo" onclick="setTheme('indigo')" title="Indigo — Pourpre sobre" aria-label="Thème Indigo"></button>
+      <button class="theme-swatch sw-teal" data-theme="teal" onclick="setTheme('teal')" title="Teal — Teal→Bleu→Magenta" aria-label="Thème Teal"></button>
     </div>
   </div>
 </header>
@@ -312,22 +319,22 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 
   <!-- Command icon buttons -->
   <div class="cmd-bar">
-    <div class="cmd-icon-btn js-sync" onclick="syncCmd()" title="Forcer une synchronisation du scooter">
+    <button type="button" class="cmd-icon-btn js-sync" onclick="syncCmd()" title="Forcer une synchronisation du scooter">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/></svg>
       Sync
-    </div>
-    <div class="cmd-icon-btn" onclick="cmd('OPEN_SEAT')">
+    </button>
+    <button type="button" class="cmd-icon-btn" onclick="cmd('OPEN_SEAT')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/><rect x="2" y="18" width="20" height="3" rx="1"/></svg>
       Selle
-    </div>
-    <div class="cmd-icon-btn" onclick="cmd('FLASH')">
+    </button>
+    <button type="button" class="cmd-icon-btn" onclick="cmd('FLASH')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
       Flash
-    </div>
-    <div class="cmd-icon-btn" onclick="cmd('BEEP_FLASH')">
+    </button>
+    <button type="button" class="cmd-icon-btn" onclick="cmd('BEEP_FLASH')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
       Beep
-    </div>
+    </button>
   </div>
 
   <!-- ON / OFF -->
@@ -651,22 +658,22 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
     <div class="mobile-page" id="mp-0">
       <!-- Command icon buttons -->
       <div class="cmd-bar">
-        <div class="cmd-icon-btn js-sync" onclick="syncCmd()" title="Forcer une synchronisation du scooter">
+        <button type="button" class="cmd-icon-btn js-sync" onclick="syncCmd()" title="Forcer une synchronisation du scooter">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/></svg>
           Sync
-        </div>
-        <div class="cmd-icon-btn" onclick="cmd('OPEN_SEAT')">
+        </button>
+        <button type="button" class="cmd-icon-btn" onclick="cmd('OPEN_SEAT')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/><rect x="2" y="18" width="20" height="3" rx="1"/></svg>
           Selle
-        </div>
-        <div class="cmd-icon-btn" onclick="cmd('FLASH')">
+        </button>
+        <button type="button" class="cmd-icon-btn" onclick="cmd('FLASH')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           Flash
-        </div>
-        <div class="cmd-icon-btn" onclick="cmd('BEEP_FLASH')">
+        </button>
+        <button type="button" class="cmd-icon-btn" onclick="cmd('BEEP_FLASH')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
           Beep
-        </div>
+        </button>
       </div>
       <div class="onoff-row">
         <button class="btn btn-on" id="m-btn-on" onclick="confirmCmd(this,'TURN_ON_SCOOTER','▶ Allumer')">▶ Allumer</button>
@@ -836,10 +843,10 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
   </div><!-- /mobile-track -->
 
   <div class="mobile-dots">
-    <div class="mobile-dot active" onclick="goPage(0)"></div>
-    <div class="mobile-dot" onclick="goPage(1)"></div>
-    <div class="mobile-dot" onclick="goPage(2)"></div>
-    <div class="mobile-dot" onclick="goPage(3)"></div>
+    <button type="button" class="mobile-dot active" onclick="goPage(0)" aria-label="Page 1 : contrôles"></button>
+    <button type="button" class="mobile-dot" onclick="goPage(1)" aria-label="Page 2 : batterie et moteur"></button>
+    <button type="button" class="mobile-dot" onclick="goPage(2)" aria-label="Page 3 : GPS et trajets"></button>
+    <button type="button" class="mobile-dot" onclick="goPage(3)" aria-label="Page 4 : diagnostics"></button>
   </div>
 </div>
 <!-- /mobile-pages -->
@@ -1421,7 +1428,9 @@ function fillTripsBody(tbodyId, trips){
     var tr = document.createElement('tr');
     tr.className = 'trip-main';
     tr.innerHTML = tripRowHTML(t);
+    tr.tabIndex = 0;
     tr.onclick = function(){ showRoute(t); };  // clic → retrace le GPS
+    tr.onkeydown = function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); showRoute(t); } };
     tbody.appendChild(tr);
   });
 }
