@@ -53,9 +53,13 @@ _all_trips: dict = _load_trips()
 _trip_fields: dict[str, dict] = {}  # imei -> {field: value}
 _trip_active: dict[str, dict] = {}  # imei -> {start_time, start_odo, start_soc, max_speed, path, last_pt_ms}
 
-def _get_soc(fields: dict) -> float:
+def _get_soc(fields: dict) -> float | None:
+    """SoC (%) or None when unknown — never a fake 0 that would poison Δsoc."""
     soc = fields.get('SOCbatteria') if fields.get('SOCbatteria') is not None else fields.get('BatterySoC')
-    return float(soc) if soc is not None else 0.0
+    try:
+        return float(soc) if soc is not None else None
+    except (TypeError, ValueError):
+        return None
 
 def _on_trip_start(imei: str, now_ms: int):
     fields = _trip_fields.get(imei, {})
@@ -70,10 +74,12 @@ def _on_trip_start(imei: str, now_ms: int):
         'last_pt_ms': 0,     # throttle GPS sampling
         'temps': {'amb': [0.0, 0], 'mot': [0.0, 0], 'inv': [0.0, 0]},  # key -> [sum, count]
     }
-    logging.info('Trip started: IMEI=%s odo=%.1f soc=%.1f%%', imei, odo, soc)
+    logging.info('Trip started: IMEI=%s odo=%.1f soc=%s%%', imei, odo, soc)
 
-PATH_INTERVAL_MS = 3000   # min delay between two recorded GPS points
-MAX_PATH_POINTS  = 2000   # cap to keep trips.json reasonable
+PATH_INTERVAL_MS = 3000     # min delay between two recorded GPS points
+MAX_PATH_POINTS  = 2000     # cap to keep trips.json reasonable
+SIMPLIFY_EPS     = 0.00005  # Douglas-Peucker tolerance (deg) ≈ 5 m
+PATHFUL_TRIPS    = 20       # only the N most recent trips keep their GPS path
 
 def _maybe_add_point(imei: str, now_ms: int):
     active = _trip_active.get(imei)
@@ -82,7 +88,7 @@ def _maybe_add_point(imei: str, now_ms: int):
     fields = _trip_fields.get(imei, {})
     lat = _parse_float(fields.get('latitude'))
     lon = _parse_float(fields.get('longitude'))
-    if not lat or not lon:   # None or 0 → no GPS fix
+    if lat is None or lon is None or (lat == 0 and lon == 0):  # no GPS fix
         return
     if now_ms - active['last_pt_ms'] < PATH_INTERVAL_MS:
         return
@@ -101,6 +107,38 @@ def _haversine(p1, p2) -> float:
 def _path_distance(path) -> float:
     """Sum of haversine segments over a GPS path (km)."""
     return sum(_haversine(path[i - 1], path[i]) for i in range(1, len(path)))
+
+def _simplify_path(path):
+    """Douglas-Peucker (iterative) — shrinks stored paths ~70% without visible
+    loss at dashboard zoom levels. Distance is computed on the RAW path before
+    this runs, so trip stats are unaffected."""
+    if len(path) < 3:
+        return path
+    keep = [False] * len(path)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(path) - 1)]
+    while stack:
+        a, b = stack.pop()
+        if b - a < 2:
+            continue
+        ay, ax = path[a]
+        by, bx = path[b]
+        dx, dy = bx - ax, by - ay
+        norm = math.hypot(dx, dy)
+        dmax, imax = 0.0, -1
+        for i in range(a + 1, b):
+            py, px = path[i]
+            if norm == 0:
+                d = math.hypot(px - ax, py - ay)
+            else:
+                d = abs(dx * (ay - py) - (ax - px) * dy) / norm
+            if d > dmax:
+                dmax, imax = d, i
+        if dmax > SIMPLIFY_EPS:
+            keep[imax] = True
+            stack.append((a, imax))
+            stack.append((imax, b))
+    return [p for p, k in zip(path, keep) if k]
 
 def _on_trip_end(imei: str):
     global _all_trips
@@ -125,10 +163,14 @@ def _on_trip_end(imei: str):
 
     dur_f   = (time.time() * 1000 - active['start_time']) / 60000   # minutes (float)
     dur     = max(1, round(dur_f))
-    # Average over the whole engine-on session (km / h). More faithful than the
-    # mean of raw speed samples, which is dragged down by idle stops.
-    avg_spd = round(dist / (dur / 60)) if dur else 0
-    bat     = round(active['start_soc'] - end_soc, 1)
+    # Average over the whole engine-on session (km / h), on the UNROUNDED
+    # duration (a 36 s trip rounded to 1 min would halve the average). More
+    # faithful than the mean of raw speed samples, dragged down by idle stops.
+    avg_spd = round(dist / (dur_f / 60)) if dur_f > 0 else 0
+    start_soc = active['start_soc']
+    # Δsoc only when both ends are known — otherwise a missing start SoC would
+    # yield bat = -82% and a bogus efficiency.
+    bat     = round(start_soc - end_soc, 1) if (start_soc is not None and end_soc is not None) else None
     max_spd = active['max_speed']
 
     # ── Sanity filters (inspired by noiwid/silence-scooter-homeassistant) ──
@@ -136,15 +178,23 @@ def _on_trip_end(imei: str):
     if avg_spd > 120:
         logging.info('Trip rejected (avg %.0f km/h implausible)', avg_spd)
         return
-    if max_spd == 0 and avg_spd > 10:
-        logging.info('Trip rejected (no speed samples but avg %.0f km/h)', avg_spd)
+    # vmax = 0 → the scooter never moved. Catches parked "trips" where a 230V
+    # charge wakes the dashboard (status leaves {0,1,5}) and hours of GPS
+    # jitter accumulate > 0.1 km of haversine distance.
+    if max_spd == 0:
+        logging.info('Trip rejected (vmax=0 — no movement, GPS drift/charge)')
         return
     if dur_f < 1.5 and dist > 2:
         logging.info('Trip rejected (%.1f km in %.1f min)', dist, dur_f)
         return
+    # SoC that RISES over a trip = charging session, not a ride (regen can
+    # never net-gain over a whole trip).
+    if bat is not None and bat < -2:
+        logging.info('Trip rejected (SoC +%.1f%% — charging session)', -bat)
+        return
 
     # Energy efficiency in Wh/km from the SoC drop over the trip.
-    eff = round(bat / 100 * BATTERY_WH / dist) if bat > 0 else 0
+    eff = round(bat / 100 * BATTERY_WH / dist) if (bat is not None and bat > 0) else 0
     dt  = datetime.fromtimestamp(active['start_time'] / 1000)
 
     # Mean temperatures over the trip (None when never reported, e.g. no CAN poll).
@@ -157,40 +207,64 @@ def _on_trip_end(imei: str):
         'ts':   active['start_time'],
         'dur':  dur,
         'dist': str(dist),
-        'bat':  str(bat),
+        'bat':  str(bat) if bat is not None else None,
         'vmax': round(max_spd),
         'vavg': avg_spd,
         'eff':  eff,
         'tamb': _avg_temp('amb'),
         'tmot': _avg_temp('mot'),
         'tinv': _avg_temp('inv'),
-        'path': active['path'],
+        'path': _simplify_path(active['path']),
     }
 
     imei_trips = _all_trips.get(imei, [])
     imei_trips.insert(0, trip)
     if len(imei_trips) > MAX_TRIPS:
         imei_trips = imei_trips[:MAX_TRIPS]
+    # Keep trips.json light: drop the GPS path of trips older than the N most
+    # recent (the whole file is re-downloaded on every dashboard load).
+    for old in imei_trips[PATHFUL_TRIPS:]:
+        old['path'] = []
     _all_trips[imei] = imei_trips
     _save_trips(_all_trips)
 
-    logging.info('Trip saved: IMEI=%s dist=%.1f km (%s, gps=%.1f odo=%.1f) dur=%d min bat=%.1f%% eff=%d Wh/km',
+    logging.info('Trip saved: IMEI=%s dist=%.1f km (%s, gps=%.1f odo=%.1f) dur=%d min bat=%s%% eff=%d Wh/km',
                  imei, dist, 'gps' if gps_dist >= 0.1 else 'odo', gps_dist, odo_dist, dur, bat, eff)
 
 def _track_field(imei: str, field: str, val, now_ms: int):
     if imei not in _trip_fields:
         _trip_fields[imei] = {}
 
-    fields      = _trip_fields[imei]
-    prev_status = fields.get('status')
+    fields        = _trip_fields[imei]
+    prev_status   = fields.get('status')
+    prev_charging = fields.get('charging')
     fields[field] = val
 
     if field == 'status':
+        if val != prev_status:
+            logging.info('Status: %s -> %s (IMEI=%s)', prev_status, val, imei)
         prev_on = prev_status is not None and prev_status not in OFF_STATUSES
         curr_on = val is not None and val not in OFF_STATUSES
         if curr_on and not prev_on:
-            _on_trip_start(imei, now_ms)
+            # En charge 230V le scooter peut se réveiller avec un status "on"
+            # (dashboard allumé) sans que le moteur tourne — pas un trajet.
+            if fields.get('charging'):
+                logging.info('Trip start skipped (charging): IMEI=%s status=%s', imei, val)
+            else:
+                _on_trip_start(imei, now_ms)
         elif prev_on and not curr_on:
+            _on_trip_end(imei)
+
+    elif field == 'charging':
+        was, now = bool(prev_charging), bool(val)
+        st = fields.get('status')
+        st_on = st is not None and st not in OFF_STATUSES
+        if was and not now and st_on and imei not in _trip_active:
+            # Débranché avec status toujours "on" → le front OFF→ON n'arrivera
+            # pas, on démarre le trajet ici.
+            _on_trip_start(imei, now_ms)
+        elif now and not was and imei in _trip_active:
+            # Branché en cours de "trajet" → garé, on clôt.
             _on_trip_end(imei)
 
     elif field == 'speed' and imei in _trip_active and val is not None:
@@ -254,8 +328,8 @@ def on_message(client, userdata, msg):
             payload = json.loads(msg.payload)
             payload['dataTimestamp'] = now_ms
             imei = parts[2]
-            for field in ('status', 'speed', 'odo', 'SOCbatteria', 'BatterySoC',
-                          'latitude', 'longitude'):
+            for field in ('charging', 'status', 'speed', 'odo', 'SOCbatteria',
+                          'BatterySoC', 'latitude', 'longitude'):
                 if field in payload:
                     _track_field(imei, field, _parse_float(payload[field]), now_ms)
             client.publish(msg.topic, json.dumps(payload), qos=0, retain=True)
