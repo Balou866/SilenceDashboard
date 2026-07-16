@@ -43,6 +43,10 @@ body{background:var(--page-bg);background-attachment:fixed;background-size:cover
 :focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .lu-dot.live{animation:none}
+  .cmd-icon-btn.syncing svg{animation:none}
+  .mobile-pages-track{transition:none}
+  .card,.stats4,.cost4{transition:none}
 }
 
 /* ── HEADER ── */
@@ -57,7 +61,7 @@ header{background:var(--hdr-tint);backdrop-filter:blur(14px);-webkit-backdrop-fi
   #vin-lbl,#hlbl{display:none}
   #hdr-conn{gap:6px}
   #mode-toggle{margin-left:8px}
-  .mode-btn{padding:4px 10px;font-size:.78em}
+  .mode-btn{padding:4px 10px;font-size:.78em;min-height:28px}
 }
 
 /* ── MODE SOBRE / TECHNIQUE ── */
@@ -76,6 +80,12 @@ body[data-mode="sobre"] main{grid-template-columns:280px 1.1fr 420px}
 main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr 0.85fr 360px;grid-template-rows:auto;gap:14px;padding:14px;align-items:start}
 .mobile-pages{position:relative;z-index:1}
 @media(max-width:1400px){main{grid-template-columns:240px 1.1fr 0.9fr}}
+/* Bug layout tablette (mode technique, 1025-1400px) : 4 colonnes DOM sur 3 pistes
+   écrasait .col-right (cartes Leaflet) dans la 1re piste de 240px. Bascule en
+   rangée pleine largeur, grille interne 3 colonnes. */
+@media(max-width:1400px) and (min-width:1025px){
+  body[data-mode="tech"] main .col-right{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+}
 @media(max-width:1024px){main{grid-template-columns:1fr 1fr}}
 
 /* ── MOBILE PAGES ── */
@@ -206,7 +216,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .trips-scroll::-webkit-scrollbar{width:6px}
 .trips-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .trips-table{width:100%;border-collapse:collapse;font-size:.8em}
-.trips-table th{color:var(--muted);font-size:.7em;text-transform:uppercase;letter-spacing:1px;padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;font-weight:500;position:sticky;top:0;background:rgba(13,26,42,.96);z-index:1}
+.trips-table th{color:var(--muted);font-size:.7em;text-transform:uppercase;letter-spacing:1px;padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;font-weight:500;position:sticky;top:0;background:rgba(13,31,51,.96);z-index:1}
 .trips-table th:first-child{text-align:left}
 .trips-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--text)}
 .trips-table tr:last-child td{border-bottom:none}
@@ -302,18 +312,10 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 body.predata .card{opacity:.45;filter:grayscale(.4)}
 
 /* Toast de feedback des commandes */
-#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(8px);background:rgba(10,25,40,.92);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.82em;padding:9px 16px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);white-space:nowrap}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(8px);background:rgba(10,25,40,.92);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.82em;padding:9px 16px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);max-width:calc(100vw - 32px);text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.err{border-color:rgba(244,67,54,.5);color:#ffb4ad}
 @media(max-width:680px){#toast{bottom:calc(64px + env(safe-area-inset-bottom))}}
-
-/* Accessibilité : respecte prefers-reduced-motion */
-@media(prefers-reduced-motion:reduce){
-  .lu-dot.live{animation:none}
-  .cmd-icon-btn.syncing svg{animation:none}
-  .mobile-pages-track{transition:none}
-  .card,.stats4,.cost4{transition:none}
-}
 
 </style>
 </head>
@@ -321,13 +323,13 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
 <script>document.body.dataset.mode=(localStorage.getItem('mode')==='tech')?'tech':'sobre';</script>
 
 <header>
-  🛵 Silence Scooter<span id="vin-lbl"></span>
+  Silence Scooter<span id="vin-lbl"></span>
   <div id="hdr-conn">
     <div class="hdot" id="hdot"></div>
-    <span id="hlbl">Connexion…</span>
+    <span id="hlbl" aria-live="polite">Connexion…</span>
     <div id="mode-toggle" role="group" aria-label="Mode d'affichage">
-      <button type="button" class="mode-btn" data-mode="sobre" onclick="setMode('sobre')" title="L'essentiel : batterie, autonomie, trajets (raccourci : M)">Sobre</button>
-      <button type="button" class="mode-btn" data-mode="tech" onclick="setMode('tech')" title="Cockpit complet : moteur, BMS, cellules, coûts (raccourci : M)">Technique</button>
+      <button type="button" class="mode-btn" data-mode="sobre" aria-pressed="true" onclick="setMode('sobre')" title="L'essentiel : batterie, autonomie, trajets (raccourci : M)">Sobre</button>
+      <button type="button" class="mode-btn" data-mode="tech" aria-pressed="false" onclick="setMode('tech')" title="Cockpit complet : moteur, BMS, cellules, coûts (raccourci : M)">Technique</button>
     </div>
   </div>
 </header>
@@ -394,10 +396,10 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
 
   <!-- Status row: 4 metrics -->
   <div class="status-row">
-    <div class="st-cell"><span class="st-icon">⚡</span><span class="st-val" id="s-bat">--%</span><span class="st-label">Batt.</span></div>
-    <div class="st-cell"><span class="st-icon">🏎️</span><span class="st-val" id="s-speed">0</span><span class="st-label">km/h</span></div>
-    <div class="st-cell"><span class="st-icon">📍</span><span class="st-val" id="s-odo">--</span><span class="st-label">km odo</span></div>
-    <div class="st-cell"><span class="st-icon">🔋</span><span class="st-val" id="s-batst">--</span><span class="st-label">État</span></div>
+    <div class="st-cell"><span class="st-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span><span class="st-val" id="s-bat">--%</span><span class="st-label">Batt.</span></div>
+    <div class="st-cell"><span class="st-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 12l4-4"/></svg></span><span class="st-val" id="s-speed">--</span><span class="st-label">km/h</span></div>
+    <div class="st-cell"><span class="st-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></span><span class="st-val" id="s-odo">--</span><span class="st-label">km odo</span></div>
+    <div class="st-cell"><span class="st-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg></span><span class="st-val" id="s-batst">--</span><span class="st-label">État</span></div>
   </div>
 
   <!-- Usage stats -->
@@ -465,6 +467,7 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
         <div class="bat-extras">
           <div class="bat-extra-row"><span class="bat-extra-label">Tension</span><span class="bat-extra-val" id="g-v">-- V</span></div>
           <div class="bat-extra-row"><span class="bat-extra-label">Courant</span><span class="bat-extra-val" id="g-a">-- A</span></div>
+          <div class="bat-extra-row" id="g-pw-row" style="display:none" title="Puissance de charge instantanée (tension × courant)"><span class="bat-extra-label">Puissance</span><span class="bat-extra-val" id="g-pw">--</span></div>
           <div class="bat-extra-row" title="Courant mesuré par le BMS (gestionnaire de batterie)"><span class="bat-extra-label">Courant BMS</span><span class="bat-extra-val" id="g-bmsa">-- A</span></div>
           <div class="bat-extra-row" title="Charge estimée par le boîtier télématique Astra (peut différer du BMS)"><span class="bat-extra-label">SOC Astra</span><span class="bat-extra-val" id="g-astra">--%</span></div>
           <div class="bat-extra-row"><span class="bat-extra-label">État</span><span class="bat-extra-val" id="g-state">--</span></div>
@@ -506,7 +509,7 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
     <div class="c4cell" title="Coût total estimé depuis l'origine (coût/km × kilométrage total)"><div class="c4val" id="c-y">--</div><div class="c4label">Total</div></div>
   </div>
   <div class="tariff-row tech">
-    <span>Tarif électricité :</span>
+    <label for="tariff-input">Tarif électricité :</label>
     <input type="number" id="tariff-input" min="0" max="9.999" step="0.001" value="0.215" onchange="applyTariff()">
     <span>€/kWh</span>
   </div>
@@ -519,7 +522,7 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
     </div>
     <div class="trips-scroll">
       <table class="trips-table">
-        <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Vmax/Moy<br>km/h</th><th>Bat.</th><th>Effic.<br>Wh/km</th><th>T° A/O/M<br>°C</th></tr></thead>
+        <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th title="Vitesse maximale / vitesse moyenne du trajet">Vmax/Moy<br>km/h</th><th title="Pourcentage de batterie consommé pendant le trajet">Bat.</th><th title="Énergie consommée par kilomètre (Wh/km)">Effic.<br>Wh/km</th><th title="Températures moyennes du trajet : Ambiance / Onduleur / Moteur">T° A/O/M<br>°C</th></tr></thead>
         <tbody id="trips-body"><tr><td colspan="7" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet pour l'instant — roulez, ils apparaîtront ici automatiquement</td></tr></tbody>
       </table>
     </div>
@@ -538,14 +541,14 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
       Températures
     </div>
     <div class="temp-grid2">
-      <div class="temp-row"><span class="temp-name">🌡 Ambiance</span><span class="temp-val tc" id="dt-amb">--°C</span></div>
-      <div class="temp-row"><span class="temp-name">🌡 Moteur</span><span class="temp-val tc" id="dt-mot">--°C</span></div>
-      <div class="temp-row"><span class="temp-name">⚡ Onduleur</span><span class="temp-val tc" id="dt-inv">--°C</span></div>
-      <div class="temp-row"><span class="temp-name">🔋 Bat. min</span><span class="temp-val tc" id="dt-bmin">--°C</span></div>
-      <div class="temp-row"><span class="temp-name">🔋 Bat. max</span><span class="temp-val tc" id="dt-bmax">--°C</span></div>
-      <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name">🔋 NTC 1</span><span class="temp-val tc" id="dt-ntc1">--°C</span></div>
-      <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name">🔋 NTC 2</span><span class="temp-val tc" id="dt-ntc2">--°C</span></div>
-      <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name">🔋 NTC 3</span><span class="temp-val tc" id="dt-ntc3">--°C</span></div>
+      <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg> Ambiance</span><span class="temp-val tc" id="dt-amb">--°C</span></div>
+      <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg> Moteur</span><span class="temp-val tc" id="dt-mot">--°C</span></div>
+      <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Onduleur</span><span class="temp-val tc" id="dt-inv">--°C</span></div>
+      <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg> Bat. min</span><span class="temp-val tc" id="dt-bmin">--°C</span></div>
+      <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg> Bat. max</span><span class="temp-val tc" id="dt-bmax">--°C</span></div>
+      <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg> NTC 1</span><span class="temp-val tc" id="dt-ntc1">--°C</span></div>
+      <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg> NTC 2</span><span class="temp-val tc" id="dt-ntc2">--°C</span></div>
+      <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg> NTC 3</span><span class="temp-val tc" id="dt-ntc3">--°C</span></div>
     </div>
   </div>
 
@@ -578,9 +581,9 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
   <!-- Énergie cumulée -->
   <div class="card">
     <div class="card-title">Énergie cumulée</div>
-    <div class="temp-row"><span class="temp-name">⚡ Chargé</span><span class="temp-val" id="dt-chr" style="color:var(--text)">-- kWh</span></div>
-    <div class="temp-row"><span class="temp-name">🔻 Déchargé</span><span class="temp-val" id="dt-dis" style="color:var(--text)">-- kWh</span></div>
-    <div class="temp-row"><span class="temp-name">♻️ Régénéré</span><span class="temp-val" id="dt-reg" style="color:var(--text)">-- kWh</span></div>
+    <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Chargé</span><span class="temp-val" id="dt-chr" style="color:var(--text)">-- kWh</span></div>
+    <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"/></svg> Déchargé</span><span class="temp-val" id="dt-dis" style="color:var(--text)">-- kWh</span></div>
+    <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/></svg> Régénéré</span><span class="temp-val" id="dt-reg" style="color:var(--text)">-- kWh</span></div>
   </div>
 
   <!-- Cellules -->
@@ -596,18 +599,20 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
 <div class="col-right">
 
   <!-- Current position (map) -->
-  <div class="card-title" style="margin-bottom:8px">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-    Position actuelle
-  </div>
-  <div class="map-card">
-    <div id="pos-map" class="route-map" style="height:200px;margin:0;display:none"></div>
-    <div class="map-placeholder" id="map-placeholder">
-      <span>🗺️</span>
-      <span>En attente du GPS…</span>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="card-title" style="margin-bottom:8px">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Position actuelle
     </div>
+    <div class="map-card">
+      <div id="pos-map" class="route-map" style="height:200px;margin:0;display:none"></div>
+      <div class="map-placeholder" id="map-placeholder">
+        <span>🗺️</span>
+        <span>En attente du GPS…</span>
+      </div>
+    </div>
+    <a id="gps-link-out" href="#" target="_blank">📍 Ouvrir dans Google Maps</a>
   </div>
-  <a id="gps-link-out" href="#" target="_blank">📍 Ouvrir dans Google Maps</a>
 
   <!-- Last trip (header + detail merged) -->
   <div class="card">
@@ -697,6 +702,7 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
             <div class="bat-extras">
               <div class="bat-extra-row"><span class="bat-extra-label">Tension</span><span class="bat-extra-val" id="m-g-v">-- V</span></div>
               <div class="bat-extra-row"><span class="bat-extra-label">Courant</span><span class="bat-extra-val" id="m-g-a">-- A</span></div>
+              <div class="bat-extra-row" id="m-g-pw-row" style="display:none" title="Puissance de charge instantanée (tension × courant)"><span class="bat-extra-label">Puissance</span><span class="bat-extra-val" id="m-g-pw">--</span></div>
               <div class="bat-extra-row"><span class="bat-extra-label">État</span><span class="bat-extra-val" id="m-g-state">--</span></div>
             </div>
           </div>
@@ -760,10 +766,10 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
         </div>
       </div>
       <div class="status-row">
-        <div class="st-cell"><span class="st-icon">⚡</span><span class="st-val" id="m-s-bat">--%</span><span class="st-label">Batt.</span></div>
-        <div class="st-cell"><span class="st-icon">🏎️</span><span class="st-val" id="m-s-speed">0</span><span class="st-label">km/h</span></div>
-        <div class="st-cell"><span class="st-icon">📍</span><span class="st-val" id="m-s-odo">--</span><span class="st-label">km odo</span></div>
-        <div class="st-cell"><span class="st-icon">🔋</span><span class="st-val" id="m-s-batst">--</span><span class="st-label">État</span></div>
+        <div class="st-cell"><span class="st-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span><span class="st-val" id="m-s-bat">--%</span><span class="st-label">Batt.</span></div>
+        <div class="st-cell"><span class="st-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 12l4-4"/></svg></span><span class="st-val" id="m-s-speed">--</span><span class="st-label">km/h</span></div>
+        <div class="st-cell"><span class="st-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></span><span class="st-val" id="m-s-odo">--</span><span class="st-label">km odo</span></div>
+        <div class="st-cell"><span class="st-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg></span><span class="st-val" id="m-s-batst">--</span><span class="st-label">État</span></div>
       </div>
     </div>
 
@@ -805,7 +811,7 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
         <div class="card-title">Trajets récents</div>
         <div class="trips-scroll">
           <table class="trips-table">
-            <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th>Vmax/Moy<br>km/h</th><th>Bat.</th><th>Effic.<br>Wh/km</th><th>T° A/O/M<br>°C</th></tr></thead>
+            <thead><tr><th>Date</th><th>Durée</th><th>Dist.</th><th title="Vitesse maximale / vitesse moyenne du trajet">Vmax/Moy<br>km/h</th><th title="Pourcentage de batterie consommé pendant le trajet">Bat.</th><th title="Énergie consommée par kilomètre (Wh/km)">Effic.<br>Wh/km</th><th title="Températures moyennes du trajet : Ambiance / Onduleur / Moteur">T° A/O/M<br>°C</th></tr></thead>
             <tbody id="m-trips-body"><tr><td colspan="7" style="color:var(--muted);text-align:center;padding:12px">Aucun trajet pour l'instant — roulez, ils apparaîtront ici automatiquement</td></tr></tbody>
           </table>
         </div>
@@ -840,21 +846,21 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>
           Températures
         </div>
-        <div class="temp-row"><span class="temp-name">🌡 Ambiance</span><span class="temp-val tc" id="m-dt-amb">--°C</span></div>
-        <div class="temp-row"><span class="temp-name">🌡 Moteur</span><span class="temp-val tc" id="m-dt-mot">--°C</span></div>
-        <div class="temp-row"><span class="temp-name">⚡ Onduleur</span><span class="temp-val tc" id="m-dt-inv">--°C</span></div>
-        <div class="temp-row"><span class="temp-name">🔋 Bat. min</span><span class="temp-val tc" id="m-dt-bmin">--°C</span></div>
-        <div class="temp-row"><span class="temp-name">🔋 Bat. max</span><span class="temp-val tc" id="m-dt-bmax">--°C</span></div>
-        <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name">🔋 NTC 1</span><span class="temp-val tc" id="m-dt-ntc1">--°C</span></div>
-        <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name">🔋 NTC 2</span><span class="temp-val tc" id="m-dt-ntc2">--°C</span></div>
-        <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name">🔋 NTC 3</span><span class="temp-val tc" id="m-dt-ntc3">--°C</span></div>
+        <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg> Ambiance</span><span class="temp-val tc" id="m-dt-amb">--°C</span></div>
+        <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg> Moteur</span><span class="temp-val tc" id="m-dt-mot">--°C</span></div>
+        <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Onduleur</span><span class="temp-val tc" id="m-dt-inv">--°C</span></div>
+        <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg> Bat. min</span><span class="temp-val tc" id="m-dt-bmin">--°C</span></div>
+        <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg> Bat. max</span><span class="temp-val tc" id="m-dt-bmax">--°C</span></div>
+        <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg> NTC 1</span><span class="temp-val tc" id="m-dt-ntc1">--°C</span></div>
+        <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg> NTC 2</span><span class="temp-val tc" id="m-dt-ntc2">--°C</span></div>
+        <div class="temp-row" title="Sonde de température interne du pack batterie (thermistance NTC)"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg> NTC 3</span><span class="temp-val tc" id="m-dt-ntc3">--°C</span></div>
       </div>
 
       <div class="card">
         <div class="card-title">Énergie cumulée</div>
-        <div class="temp-row"><span class="temp-name">⚡ Chargé</span><span class="temp-val" id="m-dt-chr" style="color:var(--text)">-- kWh</span></div>
-        <div class="temp-row"><span class="temp-name">🔻 Déchargé</span><span class="temp-val" id="m-dt-dis" style="color:var(--text)">-- kWh</span></div>
-        <div class="temp-row"><span class="temp-name">♻️ Régénéré</span><span class="temp-val" id="m-dt-reg" style="color:var(--text)">-- kWh</span></div>
+        <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Chargé</span><span class="temp-val" id="m-dt-chr" style="color:var(--text)">-- kWh</span></div>
+        <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"/></svg> Déchargé</span><span class="temp-val" id="m-dt-dis" style="color:var(--text)">-- kWh</span></div>
+        <div class="temp-row"><span class="temp-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/></svg> Régénéré</span><span class="temp-val" id="m-dt-reg" style="color:var(--text)">-- kWh</span></div>
       </div>
 
       <div class="card">
@@ -866,7 +872,7 @@ body.predata .card{opacity:.45;filter:grayscale(.4)}
   </div><!-- /mobile-track -->
 
   <div class="mobile-dots">
-    <button type="button" class="mobile-dot active" onclick="goPage(0)" aria-label="Page 1 — Batterie et moteur"></button>
+    <button type="button" class="mobile-dot active" aria-current="true" onclick="goPage(0)" aria-label="Page 1 — Batterie et moteur"></button>
     <button type="button" class="mobile-dot" onclick="goPage(1)" aria-label="Page 2 — Contrôles"></button>
     <button type="button" class="mobile-dot" onclick="goPage(2)" aria-label="Page 3 — GPS et trajets"></button>
     <button type="button" class="mobile-dot tech" onclick="goPage(3)" aria-label="Page 4 — Diagnostics"></button>
@@ -905,7 +911,7 @@ var SCLS        = {0:'s0',1:'s1',2:'s2',3:'s3',4:'s4',5:'s5',6:'s6'};
 function applyTariff(){
   var el = document.getElementById('tariff-input');
   var v = parseFloat(el.value);
-  if(isNaN(v) || v <= 0) return;
+  if(isNaN(v) || v <= 0){ el.value = TARIFF.toFixed(3); return; }
   TARIFF = v;
   localStorage.setItem('tariff', v);
   updateCosts(lastConsPkm, lastOdo);
@@ -919,6 +925,7 @@ function applyModeUI(){
   document.body.dataset.mode = MODE;
   document.querySelectorAll('.mode-btn').forEach(function(b){
     b.classList.toggle('active', b.dataset.mode === MODE);
+    b.setAttribute('aria-pressed', b.dataset.mode === MODE ? 'true' : 'false');
   });
 }
 applyModeUI();
@@ -1195,11 +1202,13 @@ function update(d){
   document.body.classList.remove('predata');
 
   var soc     = d.SOCbatteria    ?? d.BatterySoC ?? 0;
+  var socKnown = d.SOCbatteria != null || d.BatterySoC != null;
   var voltage = d.VOLTbatteria   ?? 0;
   var current = d.batteryCurrent ?? 0;
   var speed   = d.speed          ?? 0;
   var status      = d.status ?? -1;
   var odo         = parseFloat(d.odo) || 0;
+  var odoKnown    = d.odo != null;
   var charged     = d.chargedEnergy    || 0;
   var disch       = d.DischargedEnergy || 0;
   var regen       = d.RegeneratedEnergy || 0;
@@ -1214,10 +1223,13 @@ function update(d){
   if(vin) txt('vin-lbl', 'VIN: '+vin);
 
   // ── SOC color + favicon (favicon régénéré seulement si le % entier change)
-  applySocColor(soc);
-  if(Math.round(soc) !== _lastFavSoc){
-    _lastFavSoc = Math.round(soc);
-    updateFavicon(soc);
+  // SOC inconnu → jamais de fausse valeur (0%) : ni couleur ni favicon touchés
+  if(socKnown){
+    applySocColor(soc);
+    if(Math.round(soc) !== _lastFavSoc){
+      _lastFavSoc = Math.round(soc);
+      updateFavicon(soc);
+    }
   }
 
   // ── Status pill
@@ -1233,9 +1245,9 @@ function update(d){
   ].forEach(function(a){ setAlarmBadge(a[0],a[1]); setAlarmBadge('m-'+a[0],a[1]); });
 
   // ── Status row (gris honnête : -- tant que la donnée n'existe pas)
-  txt2('s-bat',   Math.round(soc)+'%');
+  txt2('s-bat',   socKnown ? Math.round(soc)+'%' : '--%');
   txt2('s-speed', d.speed != null ? Math.round(speed) : '--');
-  txt2('s-odo',   odo.toFixed(0));
+  txt2('s-odo',   odoKnown ? odo.toFixed(0) : '--');
   txt2('s-batst', d.batteryIn==null ? '--' : d.batteryIn===0 ? 'Absente' : d.charging ? 'Charge' : 'OK');
 
   // ── Motor card
@@ -1270,33 +1282,37 @@ function update(d){
     txt('u-base', String(trips.length));
   }
 
-  updateBatteryUI(d, soc, voltage, current, charged, disch, regen);
+  updateBatteryUI(d, soc, socKnown, voltage, current, charged, disch, regen);
   updateCosts(lastConsPkm, lastOdo);
   updateGPS(d);
 
   trackTrip(d, speed, soc, odo);
 }
 
-function updateBatteryUI(d, soc, voltage, current, charged, disch, regen){
+function updateBatteryUI(d, soc, socKnown, voltage, current, charged, disch, regen){
   var bmsCurrent  = d.bmsCurrent      ?? null;
   var astraSOC    = d.astraBatterySOC ?? null;
   var bmsFlags    = d.bmsFlags        ?? null;
 
   var circ = 2*Math.PI*62, arcTotal = circ*270/360;
-  var arcLen = ((soc/100)*arcTotal).toFixed(1)+' '+circ.toFixed(1);
-  var arcCol = getSocColor(soc);
+  var arcLen = socKnown ? ((soc/100)*arcTotal).toFixed(1)+' '+circ.toFixed(1) : '0 '+circ.toFixed(1);
   ['gauge-arc','m-gauge-arc'].forEach(function(id){
     var el=$(id); if(!el) return;
     el.setAttribute('stroke-dasharray', arcLen);
-    el.setAttribute('stroke', arcCol);   // arc monochrome selon le SOC
+    if(socKnown) el.setAttribute('stroke', getSocColor(soc));   // arc monochrome selon le SOC
   });
 
-  txt2('g-pct',   Math.round(soc)+'%');
+  txt2('g-pct',   socKnown ? Math.round(soc)+'%' : '--%');
   txt2('g-v',     voltage ? voltage.toFixed(1)+' V' : '-- V');
   txt2('g-a',     current ? current.toFixed(1)+' A' : '-- A');
   txt('g-bmsa',   bmsCurrent != null ? bmsCurrent.toFixed(1)+' A' : '-- A');
   txt('g-astra',  astraSOC   != null ? Math.round(astraSOC)+'%'   : '--%');
-  txt2('g-state', d.charging ? '⚡ Charge' : (d.batteryOut ? '🔓 Retirée' : '✓ Normal'));
+  txt2('g-state', d.charging != null || d.batteryOut != null ? (d.charging ? '⚡ Charge' : (d.batteryOut ? '🔓 Retirée' : '✓ Normal')) : '--');
+
+  // Puissance de charge instantanée : n'a de sens qu'en charge, avec tension et courant connus
+  var chargingPower = d.charging && voltage > 0 && current ? Math.abs(voltage*current)/1000 : null;
+  ['g-pw-row','m-g-pw-row'].forEach(function(id){ var el=$(id); if(el) el.style.display = chargingPower!=null ? 'flex' : 'none'; });
+  if(chargingPower != null) txt2('g-pw', chargingPower.toFixed(2)+' kW');
 
   txt2('bh-v', voltage ? voltage.toFixed(0) : '--');
   if(charged > 0) txt2('bh-cycles', (charged/BAT_CAP).toFixed(1));
@@ -1529,6 +1545,7 @@ function fillTripsBody(tbodyId, trips){
     tr.className = 'trip-main';
     tr.innerHTML = tripRowHTML(t);
     tr.tabIndex = 0;
+    tr.setAttribute('aria-label', 'Afficher le tracé du trajet du '+formatTripDate(t.ts));
     tr.onclick = function(){                   // clic → retrace le GPS
       tbody.querySelectorAll('tr.sel').forEach(function(r){ r.classList.remove('sel'); });
       tr.classList.add('sel');                 // feedback : ligne sélectionnée
@@ -1606,7 +1623,10 @@ function goPage(n){
   // % de la largeur de la piste (= viewport), pas vw : cohérent avec flex-basis 100%
   track.style.transform = 'translateX(-'+ (_curPage * 100) +'%)';
   var dots = document.querySelectorAll('.mobile-dot');
-  dots.forEach(function(d,i){ d.classList.toggle('active', i===_curPage); });
+  dots.forEach(function(d,i){
+    d.classList.toggle('active', i===_curPage);
+    if(i===_curPage) d.setAttribute('aria-current','true'); else d.removeAttribute('aria-current');
+  });
 }
 
 (function(){
