@@ -2,3 +2,11 @@
 _ssh_check.py
 _ssh_check2.py
 /temp
+temp/silence-private-server/
+
+# Outils/docs de dev locaux, pas necessaires a l application
+.fallow/
+.impeccable/
+.kilo/
+PRODUCT.md
+DESIGN.md
