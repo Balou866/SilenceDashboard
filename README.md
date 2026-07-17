@@ -1,19 +1,15 @@
-# 🛵 Silence Dashboard
+# Silence Dashboard
 
 Tableau de bord auto-hébergé pour scooter électrique **Silence S01 / SEAT MÓ**.
 Une stack Docker à coller dans Portainer : votre scooter se connecte à **votre** serveur, et vous suivez tout depuis un navigateur — sans cloud, sans compte, sans app.
 
-## 📸 Aperçu
+## Aperçu
 
-<!-- Déposez vos captures d'écran dans docs/screenshots/ puis décommentez / adaptez : -->
-<!--
-![Vue d'ensemble du dashboard](docs/screenshots/dashboard.png)
-![Version mobile](docs/screenshots/mobile.png)
--->
+![Vue d'ensemble du dashboard](docs/screenshots/Dashboard.jpg)
 
-> _Captures d'écran à venir._
+<img src="docs/screenshots/Mobile.jpg" alt="Version mobile" width="300">
 
-## ✨ Fonctionnalités
+## Fonctionnalités
 
 - **Télémétrie en direct** : vitesse, batterie (SOC), odomètre, températures, état de charge — poussés en MQTT/WebSocket dès que le scooter émet
 - **Commandes à distance** : allumer / éteindre, ouvrir la selle, flash, klaxon+flash, synchronisation immédiate (`SYNC`)
@@ -23,7 +19,7 @@ Une stack Docker à coller dans Portainer : votre scooter se connecte à **votre
 - **Coûts d'usage** : estimation semaine / mois / total selon votre tarif électricité
 - **PWA** : installable sur l'écran d'accueil mobile, fonctionne hors ligne (shell)
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 Scooter ──TCP 38955──► silence-server ──MQTT──► mosquitto ──WebSocket 9002──► navigateur :8083
@@ -39,14 +35,14 @@ Scooter ──TCP 38955──► silence-server ──MQTT──► mosquitto �
 
 Aucun middleware (pas de Node-RED, pas de base de données externe).
 
-## ✅ Prérequis
+## Prérequis
 
 - Docker + Portainer sur votre serveur
 - Port **38955** joignable par le scooter (ouverture/redirection selon votre réseau)
 - L'**IMEI** du scooter (visible dans l'app Silence ou sur l'écran du scooter)
 - Le scooter redirigé vers votre serveur — voir la [documentation de silence-private-server](https://github.com/lorenzo-deluca/silence-private-server)
 
-## 🚀 Déploiement (Portainer)
+## Déploiement (Portainer)
 
 1. **Stacks → Add stack**, nommer la stack (ex. `silence-dashboard`)
 2. Coller le compose ci-dessous dans l'éditeur
@@ -176,7 +172,7 @@ volumes:
   trip-data:
 ```
 
-## 🌐 Accès et ports
+## Accès et ports
 
 | Port | Service |
 |---|---|
@@ -184,18 +180,18 @@ volumes:
 | 9002 | MQTT WebSocket (mosquitto) |
 | 38955 | Connexion TCP du scooter (silence-server) |
 
-## ⚙️ Configuration
+## Configuration
 
 Seul paramètre requis : **`IMEI`** (variable d'environnement de la stack).
 
 À chaque (re)déploiement, le service `init` retélécharge les fichiers depuis ce repo et réinjecte l'IMEI — changer d'IMEI = modifier la variable dans Portainer et redéployer, rien d'autre.
 
-## 📡 Topics MQTT
+## Topics MQTT
 
 - Télémétrie : `home/silence-server/<IMEI>/status` (JSON)
 - Commandes : `home/silence-server/<IMEI>/command/<CMD>` — `TURN_ON_SCOOTER`, `TURN_OFF_SCOOTER`, `OPEN_SEAT`, `FLASH`, `BEEP_FLASH`, `SYNC`
 
-## 🙏 Crédits
+## Crédits
 
 - [lorenzo-deluca/silence-private-server](https://github.com/lorenzo-deluca/silence-private-server) — serveur TCP/MQTT et rétro-ingénierie du protocole
 - [noiwid/silence-scooter-homeassistant](https://github.com/noiwid/silence-scooter-homeassistant) — définition des données et inspiration du dashboard
