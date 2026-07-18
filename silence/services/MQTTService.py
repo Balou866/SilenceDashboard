@@ -1,0 +1,108 @@
+from helpers.constants import *
+import paho.mqtt.client as mqtt
+import logging
+import time
+from pubsub import pub
+from helpers.command import Command
+
+log = logging.getLogger(LOGGER_NAME)
+
+class MQTTService:
+
+    def __init__(self, configuration, imei):
+        self.broker = configuration["MQTTbroker"]
+        self.port = configuration["MQTTport"]
+        self.username = configuration["MQTTuser"]
+        self.password = configuration["MQTTpass"]
+        self.prefix = configuration["TopicPrefix"] + "/" + imei
+        self.imei = imei
+
+        self.client = mqtt.Client()
+
+        self.last_status = {}
+        log.debug(f"MQTT Service initialized for IMEI: {self.imei}")
+
+    def build_topic(self, topic):
+        return f"{self.prefix}/{topic}"
+
+    def disconnect(self):
+        self.client.disconnect()
+
+    def publish(self, topic, value):
+        log.debug(f"Publishing on topic [{topic}] value: {value}")
+        self.client.publish(topic, value)
+
+    def on_connect(self, client, userdata, flags, rc):
+        log.info(f"Connected to broker with result code {rc}")
+
+        log.debug(f"MQTT Sub to {self.build_topic(MQTT_COMMAND)}/+")
+        client.subscribe(f"{self.build_topic(MQTT_COMMAND)}/+")
+
+    def on_disconnect(self, client, userdata, rc):
+        if rc != 0:
+            log.warning(f"MQTT disconnected (rc={rc}), auto-reconnect in progress")
+
+    def on_message(self, client, userdata, message):
+        log.debug(f"Received message '{message.payload.decode()}' on topic '{message.topic}'")
+
+        cmd = message.topic.replace(self.build_topic(MQTT_COMMAND)+"/", "")
+        if len(cmd) > 0:
+            try:
+                pub.sendMessage(TOPIC_COMMAND_RECEIVED, command=cmd, payload=message.payload.decode())
+            except Exception as ex :
+                log.error(f"Invalid command received: {cmd}")
+                self.publish(f"{self.build_topic(MQTT_COMMAND)}/{cmd}/{MQTT_RESULT}", f"Invalid command {cmd}")
+                return
+
+    def start(self):
+
+        log.info(f"Start MQTT Service for IMEI: {self.imei}")
+        try:
+            self.client.username_pw_set(self.username, self.password)
+            # Override : callbacks posés AVANT la connexion, puis connect_async +
+            # loop_start — la boucle réseau paho retente la connexion initiale et
+            # les reconnexions indéfiniment. L'upstream fait un connect() bloquant
+            # unique : si mosquitto n'est pas prêt (reboot de l'hôte, depends_on
+            # non respecté au restart Docker), le service tournait sans MQTT
+            # jusqu'au prochain restart manuel.
+            self.client.on_connect = self.on_connect
+            self.client.on_message = self.on_message
+            self.client.on_disconnect = self.on_disconnect
+            self.client.reconnect_delay_set(min_delay=1, max_delay=30)
+            self.client.connect_async(self.broker, self.port, 60)
+
+            log.debug(f"Pub/Sub on {TOPIC_SCOOTER_STATUS} for IMEI: {self.imei}")
+            pub.subscribe(self.publish_scooter_status, TOPIC_SCOOTER_STATUS)
+
+            log.debug(f"Pub/Sub on {TOPIC_COMMAND_RESULT} for IMEI: {self.imei}")
+            pub.subscribe(self.command_result, TOPIC_COMMAND_RESULT)
+
+            self.client.loop_start()
+
+        except Exception:
+            log.exception("Exception in MQTTService start")
+            raise Exception("Exception in MQTTService start")
+
+    def stop(self):
+        log.info(f"Stopping MQTT Service for IMEI: {self.imei}")
+        self.client.loop_stop()
+
+    def command_result(self, command, result):
+        log.debug(f"Command {command} result {result}")
+        self.publish(f"{self.build_topic(MQTT_COMMAND)}/{command}/{MQTT_RESULT}", result)
+
+    def publish_scooter_status(self, scooter_status):
+        log.debug(f"Publishing scooter status: {scooter_status} for IMEI: {self.imei}")
+
+        for parameter in scooter_status:
+            try:
+                if scooter_status[parameter]["value"] != None:
+                    MQTT_topic = scooter_status[parameter]["MQTT_topic"]
+                    value = scooter_status[parameter]["value"]
+                    self.publish(f"{self.build_topic(MQTT_STATUS)}/{MQTT_topic}",value)
+            except Exception:
+                log.exception(f"Exception in publishing parameter {parameter}")
+
+        self.last_status = scooter_status
+        self.lastMessageTime = time.time()
+        self.publish(f"{self.build_topic(MQTT_STATUS)}/last-update", self.lastMessageTime)

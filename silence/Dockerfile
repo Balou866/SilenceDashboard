@@ -10,5 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && \
 COPY silence/helpers/messageParser.py helpers/messageParser.py
 COPY silence/helpers/commands_definition.json helpers/commands_definition.json
 COPY silence/services/CommandService.py services/CommandService.py
+COPY silence/services/MQTTService.py services/MQTTService.py
 
 CMD ["python", "silence-server.py"]
