@@ -27,7 +27,6 @@ Scooter ──TCP 38955──► silence-server ──MQTT──► mosquitto �
 
 | Service | Rôle |
 |---|---|
-| `init` | Télécharge les configs depuis ce repo, injecte l'IMEI, puis s'arrête |
 | `silence-server` | Proxy TCP qui intercepte la connexion du scooter et publie la télémétrie en MQTT |
 | `mosquitto` | Broker MQTT (1883 interne, WebSocket 9001 exposé sur 9002) |
 | `mqtt-retain` | Republie les messages en `retain` (snapshot instantané au chargement) et enregistre les trajets dans `trips.json` |
@@ -52,65 +51,15 @@ Aucun middleware (pas de Node-RED, pas de base de données externe).
 ```yaml
 services:
 
-  init:
-    image: alpine:latest
-    environment:
-      - IMEI=${IMEI:-TON_IMEI}
-    volumes:
-      - mosquitto-config:/mosquitto-config
-      - silence-config:/silence-config
-      - dashboard-data:/dashboard-data
-    command:
-      - sh
-      - -c
-      - |
-        set -e
-        RAW="https://raw.githubusercontent.com/Balou866/SilenceDashboard/master"
-
-        # Crée le mountpoint du volume trip-data AVANT que dashboard ne monte
-        # /usr/share/nginx/html en :ro (sinon mkdir impossible -> conteneur bloqué)
-        mkdir -p /dashboard-data/data
-
-        wget -qO /mosquitto-config/mosquitto.conf \
-          "$$RAW/mosquitto/mosquitto.conf"
-
-        wget -qO /tmp/config.json "$$RAW/silence/configuration.template.json"
-        sed "s/TON_IMEI/$$IMEI/g" /tmp/config.json > /silence-config/configuration.json
-
-        wget -qO /tmp/index.html "$$RAW/dashboard/index.template.html"
-        sed "s/TON_IMEI/$$IMEI/g" /tmp/index.html > /dashboard-data/index.html
-
-        wget -qO /dashboard-data/mqtt.min.js \
-          "$$RAW/dashboard/mqtt.min.js"
-
-        wget -qO /dashboard-data/rambo-silence.png \
-          "$$RAW/dashboard/rambo-silence.png"
-
-        # PWA : manifest, service worker et icônes
-        wget -qO /dashboard-data/manifest.json      "$$RAW/dashboard/manifest.json"
-        wget -qO /dashboard-data/sw.js              "$$RAW/dashboard/sw.js"
-        wget -qO /dashboard-data/icon-192.png       "$$RAW/dashboard/icon-192.png"
-        wget -qO /dashboard-data/icon-512.png       "$$RAW/dashboard/icon-512.png"
-        wget -qO /dashboard-data/apple-touch-icon.png "$$RAW/dashboard/apple-touch-icon.png"
-
-        # Leaflet (fond de carte OSM pour le tracé du trajet) — auto-hébergé
-        # dans dashboard-data, servi en same-origin (cache PWA possible)
-        wget -qO /dashboard-data/leaflet.css "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        wget -qO /dashboard-data/leaflet.js  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-
-        echo "Init done!"
-
   mosquitto:
-    image: eclipse-mosquitto:latest
+    build:
+      context: https://github.com/Balou866/SilenceDashboard.git
+      dockerfile: mosquitto/Dockerfile
     container_name: mosquitto
     restart: unless-stopped
-    depends_on:
-      init:
-        condition: service_completed_successfully
     ports:
       - "9002:9001"
     volumes:
-      - mosquitto-config:/mosquitto/config
       - mosquitto-data:/mosquitto/data
     healthcheck:
       test: ["CMD", "mosquitto_pub", "-t", "health", "-m", "1", "-q", "0"]
@@ -124,8 +73,6 @@ services:
       dockerfile: mqtt-retain/Dockerfile
     container_name: silence-retain
     restart: unless-stopped
-    environment:
-      - TZ=Europe/Paris
     depends_on:
       mosquitto:
         condition: service_healthy
@@ -139,36 +86,32 @@ services:
     container_name: silence-server
     restart: unless-stopped
     environment:
+      # Définir IMEI dans Portainer : section "Environment variables" sous l'éditeur YAML
+      # Nom : IMEI  |  Valeur : votre numéro (ex: 860000000000000)
+      # Ne pas modifier cette ligne ni mettre l'IMEI directement dans le YAML.
+      - IMEI=${IMEI:-TON_IMEI}
       - PYTHONUNBUFFERED=1
     depends_on:
-      init:
-        condition: service_completed_successfully
       mosquitto:
         condition: service_healthy
     ports:
       - "38955:38955"
-    volumes:
-      - silence-config:/config
-    entrypoint: sh -c "cp /config/configuration.json /app/configuration.json && python silence-server.py"
 
   dashboard:
-    image: nginx:alpine
+    build:
+      context: https://github.com/Balou866/SilenceDashboard.git
+      dockerfile: dashboard/Dockerfile
     container_name: silence-dashboard
     restart: unless-stopped
-    depends_on:
-      init:
-        condition: service_completed_successfully
+    environment:
+      - IMEI=${IMEI:-TON_IMEI}
     ports:
       - "8083:80"
     volumes:
-      - dashboard-data:/usr/share/nginx/html:ro
       - trip-data:/usr/share/nginx/html/data:ro
 
 volumes:
-  mosquitto-config:
   mosquitto-data:
-  silence-config:
-  dashboard-data:
   trip-data:
 ```
 
@@ -184,7 +127,7 @@ volumes:
 
 Seul paramètre requis : **`IMEI`** (variable d'environnement de la stack).
 
-À chaque (re)déploiement, le service `init` retélécharge les fichiers depuis ce repo et réinjecte l'IMEI — changer d'IMEI = modifier la variable dans Portainer et redéployer, rien d'autre.
+L'IMEI est injecté au démarrage des conteneurs (`configuration.json` côté `silence-server`, `index.html` côté `dashboard`) — changer d'IMEI = modifier la variable dans Portainer et redéployer, rien d'autre.
 
 ## Topics MQTT
 
