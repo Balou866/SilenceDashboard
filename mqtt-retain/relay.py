@@ -347,5 +347,6 @@ client = mqtt.Client(
 )
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect(BROKER, PORT)
-client.loop_forever()
+# Broker pas encore prêt (1er déploiement, reboot hôte) : on retente au lieu de crasher
+client.connect_async(BROKER, PORT)
+client.loop_forever(retry_first_connection=True)

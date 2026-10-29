@@ -61,11 +61,6 @@ services:
       - "9002:9001"
     volumes:
       - mosquitto-data:/mosquitto/data
-    healthcheck:
-      test: ["CMD", "mosquitto_pub", "-t", "health", "-m", "1", "-q", "0"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
 
   mqtt-retain:
     build:
@@ -73,9 +68,6 @@ services:
       dockerfile: mqtt-retain/Dockerfile
     container_name: silence-retain
     restart: unless-stopped
-    depends_on:
-      mosquitto:
-        condition: service_healthy
     volumes:
       - trip-data:/data
 
@@ -86,14 +78,7 @@ services:
     container_name: silence-server
     restart: unless-stopped
     environment:
-      # Définir IMEI dans Portainer : section "Environment variables" sous l'éditeur YAML
-      # Nom : IMEI  |  Valeur : votre numéro (ex: 860000000000000)
-      # Ne pas modifier cette ligne ni mettre l'IMEI directement dans le YAML.
-      - IMEI=${IMEI:-TON_IMEI}
-      - PYTHONUNBUFFERED=1
-    depends_on:
-      mosquitto:
-        condition: service_healthy
+      - IMEI=${IMEI:-TON_IMEI}   # à définir dans "Environment variables" de Portainer
     ports:
       - "38955:38955"
 
