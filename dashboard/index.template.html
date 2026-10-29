@@ -281,7 +281,7 @@ main{position:relative;z-index:1;display:grid;grid-template-columns:260px 1.15fr
 .cellv{background:rgba(255,255,255,.04);border-radius:6px;padding:6px 2px;text-align:center;border:1px solid var(--border)}
 .cellv-n{font-size:.6em;color:var(--muted)}
 .cellv-v{font-size:.72em;font-weight:700;margin-top:1px}
-.cells-age{font-size:.62em;color:var(--muted);margin-top:6px;line-height:1.5}
+.cells-age{font-size:.7em;color:var(--muted);margin-top:6px;line-height:1.5}
 .cells-age .stale{color:var(--yellow)}
 .cv-ok{color:var(--green)}
 .cv-warn{color:var(--yellow)}
@@ -1589,7 +1589,7 @@ function renderCellAges(){
     var label = 'C'+g[0]+'–'+g[1]+' ';
     if(!ts[k]) return label+'--';
     return '<span'+(newest-ts[k] > 60000 ? ' class="stale"' : '')+'>'+label+timeAgo(ts[k]).replace('il y a ','')+'</span>';
-  }).join(' · ') : '';
+  }).join(' · ') : 'Âge de lecture : en attente du prochain relevé (scooter allumé, toutes les 10 min)';
   ['cells-age','m-cells-age'].forEach(function(id){ var el=$(id); if(el) el.innerHTML=html; });
 }
 function renderCellGrid(gridId,prefix,cells){
