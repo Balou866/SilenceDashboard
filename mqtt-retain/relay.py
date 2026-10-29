@@ -318,6 +318,13 @@ def on_message(client, userdata, msg):
 
         _track_field(imei, field, val, now_ms)
 
+        # Horodatage par cellule : les 14 tensions arrivent par 4 trames CAN
+        # distinctes, potentiellement lues à des moments différents. Le retain
+        # MQTT ne garde pas l'heure → on la publie à côté (CellNVoltageTs).
+        if field.startswith('Cell') and field.endswith('Voltage'):
+            client.publish(f'home/silence-server/{imei}/status/{field}Ts',
+                           str(now_ms), qos=0, retain=True)
+
         if now_ms - _last_ts.get(imei, 0) > 1000:
             _last_ts[imei] = now_ms
             client.publish(f'home/silence-server/{imei}/status/dataTimestamp',
